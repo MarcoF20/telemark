@@ -1,0 +1,13 @@
+# TeleAssist v2 — requirements
+# Python 3.10+ recomendado (se usa X | Y type hints)
+# Python 3.8-3.9 también funciona si cambias "int | None" por "Optional[int]"
+#
+# Sin dependencias externas. Todo usa stdlib:
+#   tkinter  — UI  (en Linux: sudo apt install python3-tk)
+#   sqlite3  — base de datos local
+#   csv      — exportar CSV
+#   datetime — timestamps
+#
+# Para futuras integraciones (descomentar cuando se necesite):
+# notion-client==2.2.1
+# requests==2.32.3
