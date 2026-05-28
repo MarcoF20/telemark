@@ -22,7 +22,40 @@ class MarcadorView(tk.Frame):
         self._llamada_id = None
         self._sesion_id  = None
         self._build()
+        self._bind_hotkeys()
         self._init_sesion()
+
+    def _bind_hotkeys(self):
+        hotkeys = {
+            "<Control-Return>": self._hotkey_save_call,
+            "<Control-n>": self._hotkey_next_call,
+            "<Control-N>": self._hotkey_next_call,
+            "<Control-Key-1>": lambda: self._mark_no_answer(),
+            "<Control-Key-2>": lambda: self._mark_voicemail(),
+            "<Control-Key-3>": lambda: self._mark_dead_number(),
+            "<Control-Key-4>": lambda: self._mark_active_number(),
+            "<Control-Key-5>": lambda: self._mark_answered(),
+            "<Control-Key-6>": lambda: self._mark_retention("retained"),
+            "<Control-Key-7>": lambda: self._mark_retention("not_retained"),
+            "<Control-l>": self._hotkey_save_lead,
+            "<Control-L>": self._hotkey_save_lead,
+        }
+        for sequence, action in hotkeys.items():
+            self.bind_all(sequence, self._run_hotkey(action), add="+")
+
+    def _run_hotkey(self, action):
+        def _handler(event):
+            if not self._hotkeys_enabled():
+                return None
+            action()
+            return "break"
+        return _handler
+
+    def _hotkeys_enabled(self):
+        if not self.winfo_ismapped():
+            return False
+        focus = self.focus_get()
+        return not focus or focus.winfo_toplevel() == self.winfo_toplevel()
 
     # ── Session ────────────────────────────────────────────────────────────────
 
@@ -174,11 +207,21 @@ class MarcadorView(tk.Frame):
         ], callback=self._on_contesto, bg=WHITE)
         self._contesto.pack(side="left")
 
-        rn = tk.Frame(c, bg=WHITE)
-        rn.pack(fill="x", pady=(PAD_S, 0))
-        tk.Label(rn, text="Notas", font=FONT_BODY, fg=TEXT_SEC,
+        self._retention_row = tk.Frame(c, bg=WHITE)
+        self._retention_row.pack_forget()
+        tk.Label(self._retention_row, text="¿Retuvo?", font=FONT_BODY, fg=TEXT_SEC,
+                 bg=WHITE, width=16, anchor="w").pack(side="left")
+        self._retention = RadioGroup(self._retention_row, [
+            {"label": "1 Retenida",    "value": "retained",     "style": "positive"},
+            {"label": "2 No retenida", "value": "not_retained", "style": "negative"},
+        ], callback=self._on_retention, bg=WHITE)
+        self._retention.pack(side="left")
+
+        self._notas_row = tk.Frame(c, bg=WHITE)
+        self._notas_row.pack(fill="x", pady=(PAD_S, 0))
+        tk.Label(self._notas_row, text="Notas", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="nw").pack(side="left", pady=(3, 0))
-        self._notas_estado = tk.Text(rn, font=FONT_BODY, height=2, width=42,
+        self._notas_estado = tk.Text(self._notas_row, font=FONT_BODY, height=2, width=42,
                                       bg=GRAY_BG, fg=TEXT_PRI, relief="flat",
                                       padx=8, pady=6,
                                       highlightbackground=BORDER, highlightthickness=1)
@@ -194,10 +237,59 @@ class MarcadorView(tk.Frame):
     def _on_contesto(self, value):
         if value == "si":
             self._steps.set_step(2)
-            self._sec_lead_outer.pack(fill="x", padx=PAD, pady=(0, PAD_S))
+            self._retention_row.pack(fill="x", pady=3, before=self._notas_row)
+            self._sec_lead_outer.pack_forget()
         else:
             self._steps.set_step(1)
+            self._retention.reset()
+            self._retention_row.pack_forget()
             self._sec_lead_outer.pack_forget()
+
+    def _on_retention(self, value):
+        if self._contesto.get() == "si" and value:
+            self._steps.set_step(3)
+            self._sec_lead_outer.pack(fill="x", padx=PAD, pady=(0, PAD_S))
+
+    def _mark_no_answer(self):
+        self._contesto.set("no")
+
+    def _mark_voicemail(self):
+        self._contesto.set("buzon")
+
+    def _mark_dead_number(self):
+        self._activo.set("fuera_servicio")
+        self._contesto.set("no")
+        self._tono.set("no")
+        self._retention.reset()
+
+    def _mark_active_number(self):
+        self._activo.set("activo")
+        self._tono.set("si")
+
+    def _mark_answered(self):
+        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
+            return
+        if not self._activo.get():
+            self._mark_active_number()
+        self._contesto.set("si")
+
+    def _mark_retention(self, value):
+        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
+            return
+        if self._contesto.get() != "si":
+            return
+        self._retention.set(value)
+
+    def _hotkey_save_call(self):
+        self._guardar_sin_lead(silent_invalid=True)
+
+    def _hotkey_next_call(self):
+        if self._num_display.get_number():
+            self._num_display._increment()
+            self._reset(keep_number=True)
+
+    def _hotkey_save_lead(self):
+        self._guardar_lead_rapido()
 
     # ── Lead rápido ────────────────────────────────────────────────────────────
 
@@ -241,6 +333,8 @@ class MarcadorView(tk.Frame):
         if not numero:
             messagebox.showwarning("Sin número", "Confirma el número primero.")
             return
+        if not self._can_save_lead():
+            return
         # First save the llamada if not saved yet
         if not self._llamada_id:
             self._llamada_id = guardar_llamada({
@@ -248,6 +342,7 @@ class MarcadorView(tk.Frame):
                 "tuvo_tono":    self._tono.get() == "si",
                 "esta_activo":  self._activo.get() or "activo",
                 "contesto":     "si",
+                "retention_status": self._retention.get(),
                 "resultado":    "lead_capturado",
                 "notas":        self._notas_estado.get("1.0", "end").strip(),
             }, self._sesion_id)
@@ -295,16 +390,25 @@ class MarcadorView(tk.Frame):
             self._nueva_sesion()
             messagebox.showinfo("Sesión reiniciada", "Contadores reseteados.")
 
-    def _guardar_sin_lead(self):
+    def _guardar_sin_lead(self, silent_invalid=False):
         numero = self._num_display.get_number()
         if not numero:
-            messagebox.showwarning("Sin número", "Confirma el número primero.")
+            if not silent_invalid:
+                messagebox.showwarning("Sin número", "Confirma el número primero.")
+            return
+        if not self._call_state_is_valid(silent=silent_invalid):
+            return
+        if self._contesto.get() == "si" and not self._retention.get():
+            if not silent_invalid:
+                messagebox.showwarning("Falta retención",
+                                       "Marca Retenida o No retenida antes de guardar.")
             return
         guardar_llamada({
             "numero":      numero,
             "tuvo_tono":   self._tono.get() == "si",
             "esta_activo": self._activo.get() or "na",
             "contesto":    self._contesto.get() or "no",
+            "retention_status": self._retention.get(),
             "resultado":   "sin_contacto",
             "notas":       self._notas_estado.get("1.0", "end").strip(),
         }, self._sesion_id)
@@ -313,20 +417,25 @@ class MarcadorView(tk.Frame):
         self._num_display._increment()
         self._reset(keep_number=True)
 
-    def _guardar_lead_rapido(self):
+    def _guardar_lead_rapido(self, silent_invalid=False):
         numero = self._num_display.get_number()
         if not numero:
-            messagebox.showwarning("Sin número", "Confirma el número primero.")
+            if not silent_invalid:
+                messagebox.showwarning("Sin número", "Confirma el número primero.")
             return
         if self._contesto.get() != "si":
-            messagebox.showwarning("Sin contacto",
-                                   "Registra que contestaron antes de guardar el lead.")
+            if not silent_invalid:
+                messagebox.showwarning("Sin contacto",
+                                       "Registra que contestaron antes de guardar el lead.")
+            return
+        if not self._can_save_lead(silent=silent_invalid):
             return
         lid = guardar_llamada({
             "numero":      numero,
             "tuvo_tono":   self._tono.get() == "si",
             "esta_activo": self._activo.get() or "activo",
             "contesto":    "si",
+            "retention_status": self._retention.get(),
             "resultado":   "lead_capturado",
             "notas":       self._notas_estado.get("1.0", "end").strip(),
         }, self._sesion_id)
@@ -345,6 +454,56 @@ class MarcadorView(tk.Frame):
         self._num_display._increment()
         self._reset(keep_number=True)
 
+    def _can_save_lead(self, silent=False):
+        if self._contesto.get() != "si":
+            if not silent:
+                messagebox.showwarning("Sin contacto",
+                                       "Registra que contestaron antes de guardar el lead.")
+            return False
+        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
+            if not silent:
+                messagebox.showwarning("Línea no activa",
+                                       "Una línea no activa no puede guardarse como lead.")
+            return False
+        retention = self._retention.get()
+        if not retention:
+            if silent:
+                return False
+            messagebox.showwarning("Falta retención",
+                                   "Marca Retenida antes de guardar lead.")
+            return False
+        if retention == "not_retained":
+            if silent:
+                return False
+            return messagebox.askyesno(
+                "Lead no retenido",
+                "Esta llamada fue marcada como no retenida.\n"
+                "¿Guardar el lead de todos modos?"
+            )
+        return True
+
+    def _call_state_is_valid(self, silent=False):
+        is_dead = self._activo.get() in ("apagado", "fuera_servicio", "na")
+        answered = self._contesto.get() == "si"
+        retained = self._retention.get() in ("retained", "not_retained")
+
+        if is_dead and answered:
+            if not silent:
+                messagebox.showwarning("Estado inválido",
+                                       "Un número no activo no puede estar contestado.")
+            return False
+        if is_dead and retained:
+            if not silent:
+                messagebox.showwarning("Estado inválido",
+                                       "Un número no activo no puede tener retención.")
+            return False
+        if retained and not answered:
+            if not silent:
+                messagebox.showwarning("Estado inválido",
+                                       "La retención solo aplica si contestaron.")
+            return False
+        return True
+
     def _reset(self, keep_number=False):
         self._llamada_id = None
         if not keep_number:
@@ -352,11 +511,13 @@ class MarcadorView(tk.Frame):
         self._tono.reset()
         self._activo.reset()
         self._contesto.reset()
+        self._retention.reset()
         self._notas_estado.delete("1.0", "end")
         self._nombre_lead.clear()
         self._empresa_lead.clear()
         self._interes_lead.reset()
         self._sec_estado_outer.pack_forget()
+        self._retention_row.pack_forget()
         self._sec_lead_outer.pack_forget()
         self._steps.set_step(0)
         if not keep_number:

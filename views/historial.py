@@ -13,6 +13,7 @@ COLUMNS = [
     ("tuvo_tono",   "Tono",       50),
     ("esta_activo", "Activo",     110),
     ("contesto",    "Contestó",   80),
+    ("retention_status", "Retención", 120),
     ("resultado",   "Resultado",  130),
     ("notas",       "Notas",      220),
 ]
@@ -20,6 +21,12 @@ COLUMNS = [
 RESULTADO_TAGS = {
     "lead_capturado": {"background": GREEN_LIGHT, "foreground": GREEN},
     "sin_contacto":   {"background": GRAY_BG,     "foreground": TEXT_SEC},
+}
+
+RETENTION_LABELS = {
+    "retained": "Retenida",
+    "not_retained": "No retenida",
+    "not_applicable": "No aplica",
 }
 
 
@@ -91,6 +98,8 @@ class HistorialView(tk.Frame):
                 v = row.get(col_id, "") or ""
                 if col_id == "tuvo_tono":
                     v = "Sí" if v == 1 else "No"
+                elif col_id == "retention_status":
+                    v = RETENTION_LABELS.get(v, v)
                 vals.append(v)
             tag = row.get("resultado", "sin_contacto")
             self._tree.insert("", "end", values=vals,

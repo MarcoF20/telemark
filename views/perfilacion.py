@@ -38,12 +38,30 @@ class PerfilacionDialog(tk.Toplevel):
         self.geometry("700x720")
         self.minsize(620, 600)
         self.configure(bg=WHITE)
-        self.grab_set()
         self.transient(parent)
 
         self._build()
         if self._existing:
             self._populate()
+        self._make_modal()
+
+    def _make_modal(self):
+        self.update_idletasks()
+        try:
+            self.wait_visibility()
+            self.grab_set()
+        except tk.TclError:
+            self.after_idle(self._retry_grab)
+        self.focus_set()
+
+    def _retry_grab(self):
+        if not self.winfo_exists():
+            return
+        try:
+            self.grab_set()
+            self.focus_set()
+        except tk.TclError:
+            pass
 
     # ── Build ──────────────────────────────────────────────────────────────────
 

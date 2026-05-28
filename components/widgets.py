@@ -239,7 +239,7 @@ class FunnelBar(tk.Frame):
 # ── StepIndicator ──────────────────────────────────────────────────────────────
 
 class StepIndicator(tk.Frame):
-    STEPS = ["número", "estado", "lead"]
+    STEPS = ["número", "estado", "retención", "lead"]
 
     def __init__(self, parent, bg=WHITE, **kwargs):
         super().__init__(parent, bg=bg, **kwargs)
@@ -292,6 +292,7 @@ class NumberDisplay(tk.Frame):
         self._bg = bg
         self._number = tk.StringVar(value="")
         self._count  = tk.IntVar(value=0)
+        self._locked = False
         self._build()
 
     def _build(self):
@@ -313,11 +314,18 @@ class NumberDisplay(tk.Frame):
         self._entry.pack(side="left", ipady=6)
         self._entry.bind("<Return>", lambda e: self._confirm())
 
-        tk.Button(mid, text="✓", font=FONT_H2,
+        self._confirm_btn = tk.Button(mid, text="✓", font=FONT_H2,
                   bg=PURPLE, fg=WHITE, relief="flat", bd=0,
                   padx=12, pady=6, cursor="hand2",
                   activebackground=PURPLE_MID, activeforeground=WHITE,
-                  command=self._confirm).pack(side="left", padx=(6, 0))
+                  command=self._confirm)
+        self._confirm_btn.pack(side="left", padx=(6, 0))
+
+        self._change_btn = tk.Button(mid, text="Cambiar base", font=FONT_BODY,
+                  bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
+                  padx=10, pady=6, cursor="hand2",
+                  highlightbackground=BORDER, highlightthickness=1,
+                  command=self.unlock)
 
         tk.Button(mid, text="+1", font=FONT_BODY,
                   bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
@@ -334,6 +342,7 @@ class NumberDisplay(tk.Frame):
         num = self._number.get().strip()
         if num:
             self._confirmed_lbl.config(text=f"✓  {num}")
+            self.lock()
             if self._on_change:
                 self._on_change(num, confirmed=True)
 
@@ -354,6 +363,7 @@ class NumberDisplay(tk.Frame):
             new_val = raw
         self._number.set(new_val)
         self._confirmed_lbl.config(text=f"✓  {new_val}")
+        self.lock()
         self._count.set(self._count.get() + 1)
         self._count_lbl.config(text=f"{self._count.get()} marcadas")
         if self._on_change:
@@ -369,6 +379,22 @@ class NumberDisplay(tk.Frame):
         self._number.set(value)
         if value:
             self._confirmed_lbl.config(text=f"✓  {value}")
+            self.lock()
+
+    def lock(self):
+        self._locked = True
+        self._entry.configure(state="disabled")
+        self._confirm_btn.configure(state="disabled", cursor="")
+        if not self._change_btn.winfo_ismapped():
+            self._change_btn.pack(side="left", padx=(4, 0))
+
+    def unlock(self):
+        self._locked = False
+        self._entry.configure(state="normal")
+        self._confirm_btn.configure(state="normal", cursor="hand2")
+        self._change_btn.pack_forget()
+        self._entry.focus_set()
+        self._entry.selection_range(0, "end")
 
     def reset_count(self):
         self._count.set(0)

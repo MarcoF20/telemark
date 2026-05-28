@@ -155,5 +155,12 @@ class SeguimientoView(tk.Frame):
                   ).pack(anchor="e")
 
     def _open_lead(self, lead_id: int):
+        if not get_lead_by_id(lead_id):
+            messagebox.showinfo(
+                "Lead no disponible",
+                "Ese lead ya no existe. La lista se va a actualizar."
+            )
+            self.refresh()
+            return
         from views.perfilacion import PerfilacionDialog
         PerfilacionDialog(self, lead_id=lead_id, on_saved=self.refresh)

@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "teleassist.db")
+RETENTION_STATUSES = {"retained", "not_retained", "not_applicable"}
 
 
 def get_connection():
@@ -44,12 +45,14 @@ def init_db():
             tuvo_tono   INTEGER DEFAULT 0,
             esta_activo TEXT,
             contesto    TEXT,
+            retention_status TEXT DEFAULT 'not_applicable',
             resultado   TEXT DEFAULT 'sin_contacto',
             notas       TEXT,
             created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (sesion_id) REFERENCES sesiones(id)
         )
     """)
+    _migrate_llamadas_schema(c)
 
     c.execute("""
         CREATE TABLE IF NOT EXISTS leads (
@@ -87,6 +90,32 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+def _migrate_llamadas_schema(cursor):
+    cursor.execute("PRAGMA table_info(llamadas)")
+    columns = {row["name"] for row in cursor.fetchall()}
+    if "retention_status" not in columns:
+        cursor.execute(
+            "ALTER TABLE llamadas ADD COLUMN retention_status TEXT DEFAULT 'not_applicable'"
+        )
+    cursor.execute("""
+        UPDATE llamadas
+        SET retention_status = 'not_applicable'
+        WHERE retention_status IS NULL OR retention_status = ''
+    """)
+
+
+def normalize_retention_status(data: dict) -> str:
+    esta_activo = data.get("esta_activo", "na")
+    contesto = data.get("contesto", "no")
+    requested = data.get("retention_status")
+
+    if esta_activo != "activo" or contesto != "si":
+        return "not_applicable"
+    if requested in ("retained", "not_retained"):
+        return requested
+    return "not_retained"
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -160,6 +189,9 @@ def get_stats_sesion(sid: int | None = None) -> dict:
     c.execute(f"SELECT COUNT(*) as t FROM llamadas ll WHERE contesto='si' {where}", args_ll)
     contestaron = c.fetchone()["t"]
 
+    c.execute(f"SELECT COUNT(*) as t FROM llamadas ll WHERE retention_status='retained' {where}", args_ll)
+    retained = c.fetchone()["t"]
+
     if sid:
         c.execute("SELECT COUNT(*) as t FROM leads WHERE sesion_id = ?", args_lead)
     else:
@@ -168,12 +200,17 @@ def get_stats_sesion(sid: int | None = None) -> dict:
 
     conn.close()
     conv = round(leads_count / contestaron * 100) if contestaron else 0
+    retention_rate = round(retained / contestaron * 100) if contestaron else 0
+    retained_conversion = round(leads_count / retained * 100) if retained else 0
     return {
         "marcadas": marcadas,
         "activos": activos,
         "contestaron": contestaron,
+        "retained": retained,
         "leads": leads_count,
         "conversion": conv,
+        "retention_rate": retention_rate,
+        "retained_conversion": retained_conversion,
     }
 
 
@@ -181,11 +218,15 @@ def get_stats_sesion(sid: int | None = None) -> dict:
 
 def guardar_llamada(data: dict, sesion_id: int | None = None) -> int:
     now = datetime.now()
+    retention_status = normalize_retention_status(data)
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO llamadas (sesion_id, numero, fecha, hora, tuvo_tono, esta_activo, contesto, resultado, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO llamadas (
+            sesion_id, numero, fecha, hora, tuvo_tono, esta_activo, contesto,
+            retention_status, resultado, notas
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         sesion_id,
         data.get("numero"),
@@ -194,6 +235,7 @@ def guardar_llamada(data: dict, sesion_id: int | None = None) -> int:
         1 if data.get("tuvo_tono") else 0,
         data.get("esta_activo", "na"),
         data.get("contesto", "no"),
+        retention_status,
         data.get("resultado", "sin_contacto"),
         data.get("notas", ""),
     ))
@@ -204,15 +246,19 @@ def guardar_llamada(data: dict, sesion_id: int | None = None) -> int:
 
 
 def update_llamada(llamada_id: int, data: dict):
+    retention_status = normalize_retention_status(data)
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        UPDATE llamadas SET tuvo_tono=?, esta_activo=?, contesto=?, resultado=?, notas=?
+        UPDATE llamadas SET
+            tuvo_tono=?, esta_activo=?, contesto=?, retention_status=?,
+            resultado=?, notas=?
         WHERE id=?
     """, (
         1 if data.get("tuvo_tono") else 0,
         data.get("esta_activo", "na"),
         data.get("contesto", "no"),
+        retention_status,
         data.get("resultado", "sin_contacto"),
         data.get("notas", ""),
         llamada_id,
@@ -234,7 +280,8 @@ def get_all_llamadas():
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        SELECT id, numero, fecha, hora, tuvo_tono, esta_activo, contesto, resultado, notas
+        SELECT id, numero, fecha, hora, tuvo_tono, esta_activo, contesto,
+               retention_status, resultado, notas
         FROM llamadas ORDER BY created_at DESC
     """)
     rows = [dict(r) for r in c.fetchall()]

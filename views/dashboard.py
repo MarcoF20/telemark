@@ -45,11 +45,13 @@ class DashboardView(tk.Frame):
         cards_row = tk.Frame(body, bg=GRAY_BG)
         cards_row.pack(fill="x", pady=(0, PAD))
         metrics = [
-            ("marcadas",    "Marcadas",      TEXT_PRI),
-            ("activos",     "Activos",       GREEN),
-            ("contestaron", "Contestaron",   BLUE),
-            ("leads",       "Leads",         PURPLE),
-            ("conversion",  "Conversión %",  AMBER),
+            ("marcadas",            "Marcadas",      TEXT_PRI),
+            ("activos",             "Activos",       GREEN),
+            ("contestaron",         "Contestaron",   BLUE),
+            ("retained",            "Retenidas",     TEAL),
+            ("leads",               "Leads",         PURPLE),
+            ("retention_rate",       "Retención %",   AMBER),
+            ("retained_conversion",  "Lead/ret. %",   PURPLE),
         ]
         for key, label, color in metrics:
             card = StatCard(cards_row, label, "0", color=color, bg=WHITE)
@@ -71,6 +73,7 @@ class DashboardView(tk.Frame):
             ("marcadas",    "Marcadas",    GRAY_MID),
             ("activos",     "Activos",     GREEN_MID),
             ("contestaron", "Contestaron", BLUE_MID),
+            ("retained",    "Retenidas",   TEAL_MID),
             ("leads",       "Leads",       PURPLE),
         ]
         for key, label, color in funnel_defs:
@@ -95,12 +98,15 @@ class DashboardView(tk.Frame):
         self._time_lbl.config(
             text=f"Sesión · {datetime.now().strftime('%H:%M')}")
 
-        for key in ("marcadas", "activos", "contestaron", "leads"):
+        for key in ("marcadas", "activos", "contestaron", "retained", "leads"):
             self._stat_cards[key].update_value(stats[key])
-        self._stat_cards["conversion"].update_value(f"{stats['conversion']}%")
+        self._stat_cards["retention_rate"].update_value(f"{stats['retention_rate']}%")
+        self._stat_cards["retained_conversion"].update_value(
+            f"{stats['retained_conversion']}%"
+        )
 
         total = max(stats["marcadas"], 1)
-        for key in ("marcadas", "activos", "contestaron", "leads"):
+        for key in ("marcadas", "activos", "contestaron", "retained", "leads"):
             self._funnel_bars[key].update(stats[key], total)
 
         for w in self._leads_frame.winfo_children():

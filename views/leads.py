@@ -224,6 +224,8 @@ class LeadsView(tk.Frame):
         lead_id = self._get_selected_id()
         if lead_id is None:
             return
+        if not self._lead_exists(lead_id):
+            return
         from views.perfilacion import PerfilacionDialog
         PerfilacionDialog(self, lead_id=lead_id, on_saved=self.refresh)
 
@@ -232,6 +234,15 @@ class LeadsView(tk.Frame):
         if lead_id is None:
             return
         lead = get_lead_by_id(lead_id)
+        if not lead:
+            messagebox.showinfo(
+                "Lead no disponible",
+                "Ese lead ya no existe. La lista se va a actualizar."
+            )
+            self.refresh()
+            if self._on_refresh:
+                self._on_refresh()
+            return
         nombre = lead.get("nombre") or lead.get("numero") or f"ID {lead_id}"
         if messagebox.askyesno("Eliminar lead",
                                f"¿Eliminar el lead de {nombre}?\nEsta acción no se puede deshacer."):
@@ -239,6 +250,18 @@ class LeadsView(tk.Frame):
             self.refresh()
             if self._on_refresh:
                 self._on_refresh()
+
+    def _lead_exists(self, lead_id: int) -> bool:
+        if get_lead_by_id(lead_id):
+            return True
+        messagebox.showinfo(
+            "Lead no disponible",
+            "Ese lead ya no existe. La lista se va a actualizar."
+        )
+        self.refresh()
+        if self._on_refresh:
+            self._on_refresh()
+        return False
 
     def _export_csv(self):
         data = get_all_leads()
