@@ -10,11 +10,11 @@ COLUMNS = [
     ("numero",      "Número",     120),
     ("fecha",       "Fecha",      90),
     ("hora",        "Hora",       60),
-    ("tuvo_tono",   "Tono",       50),
-    ("esta_activo", "Activo",     110),
-    ("contesto",    "Contestó",   80),
+    ("line_status", "Línea",      90),
+    ("answer_status", "Respuesta", 120),
     ("retention_status", "Retención", 120),
-    ("resultado",   "Resultado",  130),
+    ("lead_status", "Lead",       90),
+    ("callback_tag", "Callback",  120),
     ("notas",       "Notas",      220),
 ]
 
@@ -27,6 +27,31 @@ RETENTION_LABELS = {
     "retained": "Retenida",
     "not_retained": "No retenida",
     "not_applicable": "No aplica",
+}
+
+LINE_LABELS = {
+    "alive": "Vivo",
+    "dead": "Muerto",
+}
+
+ANSWER_LABELS = {
+    "answered": "Contestó",
+    "not_answered": "No contestó",
+    "voicemail": "Buzón",
+    "not_applicable": "No aplica",
+}
+
+LEAD_LABELS = {
+    "lead": "Lead",
+    "not_lead": "No lead",
+    "not_applicable": "No aplica",
+}
+
+CALLBACK_LABELS = {
+    "none": "",
+    "voicemail_retry": "Buzón retry",
+    "call_later": "Llamar luego",
+    "follow_up": "Follow-up",
 }
 
 
@@ -96,10 +121,16 @@ class HistorialView(tk.Frame):
             vals = []
             for col_id, _, _ in COLUMNS:
                 v = row.get(col_id, "") or ""
-                if col_id == "tuvo_tono":
-                    v = "Sí" if v == 1 else "No"
+                if col_id == "line_status":
+                    v = LINE_LABELS.get(v, v)
+                elif col_id == "answer_status":
+                    v = ANSWER_LABELS.get(v, v)
                 elif col_id == "retention_status":
                     v = RETENTION_LABELS.get(v, v)
+                elif col_id == "lead_status":
+                    v = LEAD_LABELS.get(v, v)
+                elif col_id == "callback_tag":
+                    v = CALLBACK_LABELS.get(v, v)
                 vals.append(v)
             tag = row.get("resultado", "sin_contacto")
             self._tree.insert("", "end", values=vals,

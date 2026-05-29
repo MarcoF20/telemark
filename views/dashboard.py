@@ -42,20 +42,21 @@ class DashboardView(tk.Frame):
         body.pack(fill="both", expand=True)
 
         # Stat cards
-        cards_row = tk.Frame(body, bg=GRAY_BG)
-        cards_row.pack(fill="x", pady=(0, PAD))
+        cards_grid = tk.Frame(body, bg=GRAY_BG)
+        cards_grid.pack(fill="x", pady=(0, PAD))
         metrics = [
-            ("marcadas",            "Marcadas",      TEXT_PRI),
-            ("activos",             "Activos",       GREEN),
-            ("contestaron",         "Contestaron",   BLUE),
-            ("retained",            "Retenidas",     TEAL),
-            ("leads",               "Leads",         PURPLE),
-            ("retention_rate",       "Retención %",   AMBER),
-            ("retained_conversion",  "Lead/ret. %",   PURPLE),
+            ("marcadas",             "Llamadas",       TEXT_PRI),
+            ("alive",                "Activos",        GREEN),
+            ("answered",             "Contestaron",    BLUE),
+            ("retained",             "Retenidas",      TEAL),
+            ("leads",                "Leads",          PURPLE),
+            ("lead_conversion_rate", "Conversión lead", PURPLE),
         ]
-        for key, label, color in metrics:
-            card = StatCard(cards_row, label, "0", color=color, bg=WHITE)
-            card.pack(side="left", expand=True, fill="x", padx=(0, 8), ipadx=4)
+        for i, (key, label, color) in enumerate(metrics):
+            card = StatCard(cards_grid, label, "0", color=color, bg=WHITE)
+            card.grid(row=0, column=i, sticky="ew",
+                      padx=(0, 8), pady=(0, 8), ipadx=4)
+            cards_grid.grid_columnconfigure(i, weight=1)
             self._stat_cards[key] = card
 
         # Two columns
@@ -70,11 +71,11 @@ class DashboardView(tk.Frame):
         SectionHeader(left, "Embudo de llamadas", bg=WHITE).pack(
             fill="x", pady=(0, PAD_S))
         funnel_defs = [
-            ("marcadas",    "Marcadas",    GRAY_MID),
-            ("activos",     "Activos",     GREEN_MID),
-            ("contestaron", "Contestaron", BLUE_MID),
-            ("retained",    "Retenidas",   TEAL_MID),
-            ("leads",       "Leads",       PURPLE),
+            ("marcadas", "Llamadas",    GRAY_MID),
+            ("alive",    "Activos",     GREEN_MID),
+            ("answered", "Contestaron", BLUE_MID),
+            ("retained", "Retenidas",   TEAL_MID),
+            ("leads",    "Leads",       PURPLE),
         ]
         for key, label, color in funnel_defs:
             bar = FunnelBar(left, label, 0, 1, color=color, bg=WHITE)
@@ -98,15 +99,14 @@ class DashboardView(tk.Frame):
         self._time_lbl.config(
             text=f"Sesión · {datetime.now().strftime('%H:%M')}")
 
-        for key in ("marcadas", "activos", "contestaron", "retained", "leads"):
+        for key in ("marcadas", "alive", "answered", "retained", "leads"):
             self._stat_cards[key].update_value(stats[key])
-        self._stat_cards["retention_rate"].update_value(f"{stats['retention_rate']}%")
-        self._stat_cards["retained_conversion"].update_value(
-            f"{stats['retained_conversion']}%"
+        self._stat_cards["lead_conversion_rate"].update_value(
+            f"{stats['lead_conversion_rate']}%"
         )
 
         total = max(stats["marcadas"], 1)
-        for key in ("marcadas", "activos", "contestaron", "retained", "leads"):
+        for key in ("marcadas", "alive", "answered", "retained", "leads"):
             self._funnel_bars[key].update(stats[key], total)
 
         for w in self._leads_frame.winfo_children():

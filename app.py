@@ -31,6 +31,7 @@ class App(tk.Tk):
         self._views: dict[str, tk.Frame] = {}
         self._nav_btns: dict[str, tk.Button] = {}
         self._active = None
+        self._dirty_views = set()
 
         self._build()
         self._navigate("marcador")
@@ -102,14 +103,25 @@ class App(tk.Tk):
             if key == "leads":
                 kwargs["on_refresh"] = self._on_saved
             self._views[key] = ViewClass(self._main, **kwargs)
+            self._dirty_views.discard(key)
 
         self._views[key].pack(fill="both", expand=True)
+        if key in self._dirty_views and hasattr(self._views[key], "refresh"):
+            self._views[key].refresh()
+            self._dirty_views.discard(key)
         self._nav_btns[key].config(
             bg=PURPLE_LIGHT, fg=PURPLE,
             font=("Segoe UI", 10, "bold"))
         self._active = key
 
     def _on_saved(self):
-        for key in ("dashboard", "leads", "seguimiento", "historial"):
-            if key in self._views and hasattr(self._views[key], "refresh"):
-                self._views[key].refresh()
+        refreshable = {"dashboard", "leads", "seguimiento", "historial"}
+        self._dirty_views.update(refreshable - {"marcador"})
+
+        if self._active == "marcador":
+            return
+
+        view = self._views.get(self._active)
+        if view and hasattr(view, "refresh"):
+            view.refresh()
+            self._dirty_views.discard(self._active)

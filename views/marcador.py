@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 from tkinter import ttk, messagebox
 from components.theme import *
 from components.widgets import (
@@ -12,6 +13,8 @@ from data.database import (
     iniciar_sesion, get_sesion_activa, cerrar_sesion,
     get_stats_sesion,
 )
+
+DEBUG_SAVE_TIMING = False
 
 
 class MarcadorView(tk.Frame):
@@ -30,13 +33,14 @@ class MarcadorView(tk.Frame):
             "<Control-Return>": self._hotkey_save_call,
             "<Control-n>": self._hotkey_next_call,
             "<Control-N>": self._hotkey_next_call,
-            "<Control-Key-1>": lambda: self._mark_no_answer(),
-            "<Control-Key-2>": lambda: self._mark_voicemail(),
-            "<Control-Key-3>": lambda: self._mark_dead_number(),
-            "<Control-Key-4>": lambda: self._mark_active_number(),
-            "<Control-Key-5>": lambda: self._mark_answered(),
-            "<Control-Key-6>": lambda: self._mark_retention("retained"),
-            "<Control-Key-7>": lambda: self._mark_retention("not_retained"),
+            "<Control-Key-1>": self._mark_dead_number,
+            "<Control-Key-2>": self._mark_no_answer,
+            "<Control-Key-3>": self._mark_voicemail,
+            "<Control-Key-4>": self._mark_answered,
+            "<Control-Key-5>": lambda: self._mark_retention("retained"),
+            "<Control-Key-6>": lambda: self._mark_retention("not_retained"),
+            "<Control-Key-7>": lambda: self._mark_lead_status("lead"),
+            "<Control-Key-8>": lambda: self._mark_lead_status("not_lead"),
             "<Control-l>": self._hotkey_save_lead,
             "<Control-L>": self._hotkey_save_lead,
         }
@@ -45,17 +49,16 @@ class MarcadorView(tk.Frame):
 
     def _run_hotkey(self, action):
         def _handler(event):
-            if not self._hotkeys_enabled():
-                return None
             action()
             return "break"
         return _handler
 
-    def _hotkeys_enabled(self):
-        if not self.winfo_ismapped():
-            return False
-        focus = self.focus_get()
-        return not focus or focus.winfo_toplevel() == self.winfo_toplevel()
+    def _save_timer(self):
+        return time.perf_counter() if DEBUG_SAVE_TIMING else None
+
+    def _log_save_timing(self, label, start):
+        if DEBUG_SAVE_TIMING and start is not None:
+            print(f"{label}: {time.perf_counter() - start:.4f}s")
 
     # ── Session ────────────────────────────────────────────────────────────────
 
@@ -176,46 +179,56 @@ class MarcadorView(tk.Frame):
 
         r1 = tk.Frame(c, bg=WHITE)
         r1.pack(fill="x", pady=3)
-        tk.Label(r1, text="¿Hubo tono?", font=FONT_BODY, fg=TEXT_SEC,
+        tk.Label(r1, text="Número", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._tono = RadioGroup(r1, [
-            {"label": "Sí", "value": "si", "style": "positive"},
-            {"label": "No", "value": "no", "style": "negative"},
-        ], bg=WHITE)
-        self._tono.pack(side="left")
+        self._line_status = RadioGroup(r1, [
+            {"label": "1 Inactivo", "value": "dead", "style": "negative"},
+            {"label": "Vivo",       "value": "alive", "style": "positive"},
+        ], callback=self._on_line_status, bg=WHITE)
+        self._line_status.pack(side="left")
 
-        r2 = tk.Frame(c, bg=WHITE)
-        r2.pack(fill="x", pady=3)
-        tk.Label(r2, text="¿Línea activa?", font=FONT_BODY, fg=TEXT_SEC,
+        self._answer_row = tk.Frame(c, bg=WHITE)
+        self._answer_row.pack_forget()
+        tk.Label(self._answer_row, text="Respuesta", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._activo = RadioGroup(r2, [
-            {"label": "Activo",           "value": "activo",        "style": "positive"},
-            {"label": "Apagado",          "value": "apagado",       "style": "negative"},
-            {"label": "Fuera de servicio","value": "fuera_servicio","style": "negative"},
-            {"label": "No aplica",        "value": "na",            "style": "neutral"},
-        ], bg=WHITE)
-        self._activo.pack(side="left")
-
-        r3 = tk.Frame(c, bg=WHITE)
-        r3.pack(fill="x", pady=3)
-        tk.Label(r3, text="¿Contestaron?", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._contesto = RadioGroup(r3, [
-            {"label": "Sí",          "value": "si",    "style": "positive"},
-            {"label": "Buzón",       "value": "buzon", "style": "neutral"},
-            {"label": "No contestó", "value": "no",    "style": "negative"},
-        ], callback=self._on_contesto, bg=WHITE)
-        self._contesto.pack(side="left")
+        self._answer_status = RadioGroup(self._answer_row, [
+            {"label": "2 No contestó", "value": "not_answered", "style": "negative"},
+            {"label": "3 Buzón",       "value": "voicemail",    "style": "neutral"},
+            {"label": "4 Contestó",    "value": "answered",     "style": "positive"},
+        ], callback=self._on_answer_status, bg=WHITE)
+        self._answer_status.pack(side="left")
 
         self._retention_row = tk.Frame(c, bg=WHITE)
         self._retention_row.pack_forget()
         tk.Label(self._retention_row, text="¿Retuvo?", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._retention = RadioGroup(self._retention_row, [
-            {"label": "1 Retenida",    "value": "retained",     "style": "positive"},
-            {"label": "2 No retenida", "value": "not_retained", "style": "negative"},
+            {"label": "5 Retenido",    "value": "retained",     "style": "positive"},
+            {"label": "6 No retenido", "value": "not_retained", "style": "negative"},
         ], callback=self._on_retention, bg=WHITE)
         self._retention.pack(side="left")
+
+        self._lead_status_row = tk.Frame(c, bg=WHITE)
+        self._lead_status_row.pack_forget()
+        tk.Label(self._lead_status_row, text="Lead", font=FONT_BODY, fg=TEXT_SEC,
+                 bg=WHITE, width=16, anchor="w").pack(side="left")
+        self._lead_status = RadioGroup(self._lead_status_row, [
+            {"label": "7 Lead",    "value": "lead",     "style": "positive"},
+            {"label": "8 No lead", "value": "not_lead", "style": "negative"},
+        ], callback=self._on_lead_status, bg=WHITE)
+        self._lead_status.pack(side="left")
+
+        self._callback_row = tk.Frame(c, bg=WHITE)
+        self._callback_row.pack_forget()
+        tk.Label(self._callback_row, text="Callback", font=FONT_BODY, fg=TEXT_SEC,
+                 bg=WHITE, width=16, anchor="w").pack(side="left")
+        self._callback_tag = RadioGroup(self._callback_row, [
+            {"label": "Sin callback", "value": "none", "style": "default"},
+            {"label": "Buzón retry", "value": "voicemail_retry", "style": "neutral"},
+            {"label": "Llamar luego", "value": "call_later", "style": "info"},
+            {"label": "Follow-up", "value": "follow_up", "style": "teal"},
+        ], bg=WHITE)
+        self._callback_tag.pack(side="left")
 
         self._notas_row = tk.Frame(c, bg=WHITE)
         self._notas_row.pack(fill="x", pady=(PAD_S, 0))
@@ -234,51 +247,111 @@ class MarcadorView(tk.Frame):
                   command=self._guardar_sin_lead).pack(
                       anchor="w", pady=(PAD_S, 0))
 
-    def _on_contesto(self, value):
-        if value == "si":
-            self._steps.set_step(2)
-            self._retention_row.pack(fill="x", pady=3, before=self._notas_row)
-            self._sec_lead_outer.pack_forget()
+        self._build_hotkey_guide(c)
+
+    def _build_hotkey_guide(self, parent):
+        guide = tk.Frame(parent, bg=WHITE)
+        guide.pack(fill="x", pady=(PAD_S, 0))
+
+        items = [
+            "Ctrl+1: Inactivo",
+            "Ctrl+2: No contestó",
+            "Ctrl+3: Buzón",
+            "Ctrl+4: Contestó",
+            "Ctrl+5: Retenido",
+            "Ctrl+6: No retenido",
+            "Ctrl+7: Lead",
+            "Ctrl+8: No lead",
+            "Ctrl+Enter: Guardar llamada",
+            "Ctrl+N: Siguiente número",
+        ]
+
+        for text in items:
+            tk.Label(
+                guide,
+                text=text,
+                font=FONT_SMALL,
+                fg=GRAY_DARK,
+                bg=WHITE,
+                anchor="w",
+            ).pack(anchor="w")
+
+    def _on_line_status(self, value):
+        self._answer_status.reset()
+        self._retention.reset()
+        self._lead_status.reset()
+        self._callback_tag.reset()
+        self._retention_row.pack_forget()
+        self._lead_status_row.pack_forget()
+        self._callback_row.pack_forget()
+        self._sec_lead_outer.pack_forget()
+
+        if value == "alive":
+            self._steps.set_step(1)
+            self._answer_row.pack(fill="x", pady=3, before=self._notas_row)
         else:
             self._steps.set_step(1)
-            self._retention.reset()
-            self._retention_row.pack_forget()
-            self._sec_lead_outer.pack_forget()
+            self._answer_row.pack_forget()
+
+    def _on_answer_status(self, value):
+        self._retention.reset()
+        self._lead_status.reset()
+        self._callback_tag.reset()
+        self._retention_row.pack_forget()
+        self._lead_status_row.pack_forget()
+        self._callback_row.pack_forget()
+        self._sec_lead_outer.pack_forget()
+
+        if value == "answered":
+            self._steps.set_step(2)
+            self._retention_row.pack(fill="x", pady=3, before=self._notas_row)
+        elif value == "voicemail":
+            self._steps.set_step(1)
+            self._callback_tag.set("voicemail_retry")
+            self._callback_row.pack(fill="x", pady=3, before=self._notas_row)
+        else:
+            self._steps.set_step(1)
 
     def _on_retention(self, value):
-        if self._contesto.get() == "si" and value:
+        self._lead_status.reset()
+        self._sec_lead_outer.pack_forget()
+        if value == "retained":
+            self._steps.set_step(3)
+            self._lead_status_row.pack(fill="x", pady=3, before=self._notas_row)
+        else:
+            self._steps.set_step(2)
+            self._lead_status_row.pack_forget()
+
+    def _on_lead_status(self, value):
+        if value == "lead":
             self._steps.set_step(3)
             self._sec_lead_outer.pack(fill="x", padx=PAD, pady=(0, PAD_S))
+        else:
+            self._steps.set_step(3)
+            self._sec_lead_outer.pack_forget()
 
     def _mark_no_answer(self):
-        self._contesto.set("no")
+        self._line_status.set("alive")
+        self._answer_status.set("not_answered")
 
     def _mark_voicemail(self):
-        self._contesto.set("buzon")
+        self._line_status.set("alive")
+        self._answer_status.set("voicemail")
 
     def _mark_dead_number(self):
-        self._activo.set("fuera_servicio")
-        self._contesto.set("no")
-        self._tono.set("no")
-        self._retention.reset()
-
-    def _mark_active_number(self):
-        self._activo.set("activo")
-        self._tono.set("si")
+        self._line_status.set("dead")
 
     def _mark_answered(self):
-        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
-            return
-        if not self._activo.get():
-            self._mark_active_number()
-        self._contesto.set("si")
+        self._line_status.set("alive")
+        self._answer_status.set("answered")
 
     def _mark_retention(self, value):
-        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
-            return
-        if self._contesto.get() != "si":
-            return
+        self._mark_answered()
         self._retention.set(value)
+
+    def _mark_lead_status(self, value):
+        self._mark_retention("retained")
+        self._lead_status.set(value)
 
     def _hotkey_save_call(self):
         self._guardar_sin_lead(silent_invalid=True)
@@ -337,15 +410,8 @@ class MarcadorView(tk.Frame):
             return
         # First save the llamada if not saved yet
         if not self._llamada_id:
-            self._llamada_id = guardar_llamada({
-                "numero":       numero,
-                "tuvo_tono":    self._tono.get() == "si",
-                "esta_activo":  self._activo.get() or "activo",
-                "contesto":     "si",
-                "retention_status": self._retention.get(),
-                "resultado":    "lead_capturado",
-                "notas":        self._notas_estado.get("1.0", "end").strip(),
-            }, self._sesion_id)
+            self._llamada_id = guardar_llamada(self._call_data(lead_status="lead"),
+                                                self._sesion_id)
         PerfilacionDialog(
             self, lead_id=None,
             numero=numero,
@@ -391,6 +457,7 @@ class MarcadorView(tk.Frame):
             messagebox.showinfo("Sesión reiniciada", "Contadores reseteados.")
 
     def _guardar_sin_lead(self, silent_invalid=False):
+        step_start = self._save_timer()
         numero = self._num_display.get_number()
         if not numero:
             if not silent_invalid:
@@ -398,126 +465,144 @@ class MarcadorView(tk.Frame):
             return
         if not self._call_state_is_valid(silent=silent_invalid):
             return
-        if self._contesto.get() == "si" and not self._retention.get():
-            if not silent_invalid:
-                messagebox.showwarning("Falta retención",
-                                       "Marca Retenida o No retenida antes de guardar.")
-            return
-        guardar_llamada({
-            "numero":      numero,
-            "tuvo_tono":   self._tono.get() == "si",
-            "esta_activo": self._activo.get() or "na",
-            "contesto":    self._contesto.get() or "no",
-            "retention_status": self._retention.get(),
-            "resultado":   "sin_contacto",
-            "notas":       self._notas_estado.get("1.0", "end").strip(),
-        }, self._sesion_id)
+        self._log_save_timing("Validate call", step_start)
+
+        step_start = self._save_timer()
+        lead_status = self._lead_status.get()
+        lid = guardar_llamada(self._call_data(), self._sesion_id)
+        if lead_status == "lead":
+            guardar_lead(self._lead_data(numero), lid, self._sesion_id)
+        self._log_save_timing("DB save call", step_start)
+
+        step_start = self._save_timer()
         if self._on_saved:
             self._on_saved()
+        self._log_save_timing("Visible refresh", step_start)
+
+        step_start = self._save_timer()
         self._num_display._increment()
         self._reset(keep_number=True)
+        self._log_save_timing("Prepare next", step_start)
 
     def _guardar_lead_rapido(self, silent_invalid=False):
+        step_start = self._save_timer()
         numero = self._num_display.get_number()
         if not numero:
             if not silent_invalid:
                 messagebox.showwarning("Sin número", "Confirma el número primero.")
             return
-        if self._contesto.get() != "si":
-            if not silent_invalid:
-                messagebox.showwarning("Sin contacto",
-                                       "Registra que contestaron antes de guardar el lead.")
-            return
         if not self._can_save_lead(silent=silent_invalid):
             return
-        lid = guardar_llamada({
-            "numero":      numero,
-            "tuvo_tono":   self._tono.get() == "si",
-            "esta_activo": self._activo.get() or "activo",
-            "contesto":    "si",
-            "retention_status": self._retention.get(),
-            "resultado":   "lead_capturado",
-            "notas":       self._notas_estado.get("1.0", "end").strip(),
-        }, self._sesion_id)
+        self._lead_status.set("lead")
+        self._log_save_timing("Validate lead", step_start)
 
-        guardar_lead({
-            "numero":   numero,
-            "nombre":   self._nombre_lead.get(),
-            "empresa":  self._empresa_lead.get(),
-            "interes":  self._interes_lead.get() or "medio",
-            "perfilado": False,
-        }, lid, self._sesion_id)
+        step_start = self._save_timer()
+        lid = guardar_llamada(self._call_data(lead_status="lead"), self._sesion_id)
+        guardar_lead(self._lead_data(numero), lid, self._sesion_id)
+        self._log_save_timing("DB save lead", step_start)
 
         messagebox.showinfo("Lead guardado", f"Lead de {numero} guardado.")
+        step_start = self._save_timer()
         if self._on_saved:
             self._on_saved()
+        self._log_save_timing("Visible refresh", step_start)
+
+        step_start = self._save_timer()
         self._num_display._increment()
         self._reset(keep_number=True)
+        self._log_save_timing("Prepare next", step_start)
 
     def _can_save_lead(self, silent=False):
-        if self._contesto.get() != "si":
+        if self._line_status.get() != "alive" or self._answer_status.get() != "answered":
             if not silent:
                 messagebox.showwarning("Sin contacto",
                                        "Registra que contestaron antes de guardar el lead.")
             return False
-        if self._activo.get() in ("apagado", "fuera_servicio", "na"):
-            if not silent:
-                messagebox.showwarning("Línea no activa",
-                                       "Una línea no activa no puede guardarse como lead.")
-            return False
         retention = self._retention.get()
-        if not retention:
+        if retention != "retained":
             if silent:
                 return False
             messagebox.showwarning("Falta retención",
                                    "Marca Retenida antes de guardar lead.")
             return False
-        if retention == "not_retained":
-            if silent:
-                return False
-            return messagebox.askyesno(
-                "Lead no retenido",
-                "Esta llamada fue marcada como no retenida.\n"
-                "¿Guardar el lead de todos modos?"
-            )
         return True
 
     def _call_state_is_valid(self, silent=False):
-        is_dead = self._activo.get() in ("apagado", "fuera_servicio", "na")
-        answered = self._contesto.get() == "si"
-        retained = self._retention.get() in ("retained", "not_retained")
+        line_status = self._line_status.get()
+        answer_status = self._answer_status.get()
+        retention = self._retention.get()
+        lead_status = self._lead_status.get()
 
-        if is_dead and answered:
+        if not line_status:
             if not silent:
                 messagebox.showwarning("Estado inválido",
-                                       "Un número no activo no puede estar contestado.")
+                                       "Marca si el número está vivo o muerto.")
             return False
-        if is_dead and retained:
+
+        if line_status == "dead":
+            return True
+
+        if not answer_status:
             if not silent:
                 messagebox.showwarning("Estado inválido",
-                                       "Un número no activo no puede tener retención.")
+                                       "Marca si contestaron, no contestaron o fue buzón.")
             return False
-        if retained and not answered:
+
+        if answer_status != "answered":
+            return True
+
+        if retention not in ("retained", "not_retained"):
             if not silent:
                 messagebox.showwarning("Estado inválido",
-                                       "La retención solo aplica si contestaron.")
+                                       "Marca si la persona fue retenida o no retenida.")
             return False
+
+        if retention == "retained" and lead_status not in ("lead", "not_lead"):
+            if not silent:
+                messagebox.showwarning("Estado inválido",
+                                       "Marca si la llamada retenida se convirtió en lead.")
+            return False
+
         return True
+
+    def _call_data(self, lead_status=None):
+        return {
+            "numero": self._num_display.get_number(),
+            "line_status": self._line_status.get() or "dead",
+            "answer_status": self._answer_status.get(),
+            "retention_status": self._retention.get(),
+            "lead_status": lead_status or self._lead_status.get(),
+            "callback_tag": self._callback_tag.get() or "none",
+            "notas": self._notas_estado.get("1.0", "end").strip(),
+        }
+
+    def _lead_data(self, numero):
+        return {
+            "numero": numero,
+            "nombre": self._nombre_lead.get(),
+            "empresa": self._empresa_lead.get(),
+            "interes": self._interes_lead.get() or "medio",
+            "perfilado": False,
+        }
 
     def _reset(self, keep_number=False):
         self._llamada_id = None
         if not keep_number:
             pass  # keep number display intact
-        self._tono.reset()
-        self._activo.reset()
-        self._contesto.reset()
+        self._line_status.reset()
+        self._answer_status.reset()
         self._retention.reset()
+        self._lead_status.reset()
+        self._callback_tag.reset()
         self._notas_estado.delete("1.0", "end")
         self._nombre_lead.clear()
         self._empresa_lead.clear()
         self._interes_lead.reset()
         self._sec_estado_outer.pack_forget()
+        self._answer_row.pack_forget()
         self._retention_row.pack_forget()
+        self._lead_status_row.pack_forget()
+        self._callback_row.pack_forget()
         self._sec_lead_outer.pack_forget()
         self._steps.set_step(0)
         if not keep_number:
