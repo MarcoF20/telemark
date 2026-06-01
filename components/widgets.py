@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+import calendar
+from datetime import date, datetime
 from components.theme import *
 
 
@@ -137,6 +139,198 @@ class LabeledCombo(tk.Frame):
 
     def reset(self):
         self._var.set("")
+
+
+# ── DatePickerEntry ────────────────────────────────────────────────────────────
+
+class DatePickerEntry(tk.Frame):
+    """Mouse-friendly date picker that stores dates as YYYY-MM-DD."""
+
+    def __init__(self, parent, bg=WHITE, width=14, **kwargs):
+        super().__init__(parent, bg=bg, **kwargs)
+        self._var = tk.StringVar()
+        self._selected = date.today()
+        self._shown_year = self._selected.year
+        self._shown_month = self._selected.month
+        self._popup = None
+        self._days_frame = None
+        self._title_var = tk.StringVar()
+        self._month_names = (
+            "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre",
+            "Diciembre",
+        )
+
+        self._entry = ttk.Entry(self, textvariable=self._var,
+                                font=FONT_BODY, width=width, state="readonly")
+        self._entry.pack(side="left", ipady=3)
+        self._entry.bind("<Button-1>", lambda e: self._open_picker())
+
+        self._button = tk.Button(
+            self, text="📅", font=FONT_BODY,
+            bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
+            padx=8, pady=4, cursor="hand2",
+            activebackground=PURPLE_LIGHT,
+            command=self._open_picker,
+        )
+        self._button.pack(side="left", padx=(6, 0))
+
+    def _parse_date(self, value):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return None
+
+    def _open_picker(self):
+        if self._popup and self._popup.winfo_exists():
+            self._popup.lift()
+            return
+
+        current = self._parse_date(self._var.get()) or date.today()
+        self._selected = current
+        self._shown_year = current.year
+        self._shown_month = current.month
+
+        self._popup = tk.Toplevel(self)
+        self._popup.title("Seleccionar fecha")
+        self._popup.configure(bg=WHITE)
+        self._popup.resizable(False, False)
+        self._popup.transient(self.winfo_toplevel())
+        self._popup.bind("<Escape>", lambda e: self._close_picker())
+        self._popup.protocol("WM_DELETE_WINDOW", self._close_picker)
+
+        x = self.winfo_rootx()
+        y = self.winfo_rooty() + self.winfo_height() + 4
+        self._popup.geometry(f"+{x}+{y}")
+
+        shell = tk.Frame(self._popup, bg=WHITE, padx=10, pady=10,
+                         highlightbackground=BORDER, highlightthickness=1)
+        shell.pack(fill="both", expand=True)
+
+        header = tk.Frame(shell, bg=WHITE)
+        header.pack(fill="x")
+        self._nav_button(header, "‹", self._previous_month).pack(side="left")
+        tk.Label(header, textvariable=self._title_var, font=FONT_H2,
+                 fg=TEXT_PRI, bg=WHITE, width=18).pack(side="left", expand=True)
+        self._nav_button(header, "›", self._next_month).pack(side="right")
+
+        weekdays = tk.Frame(shell, bg=WHITE)
+        weekdays.pack(fill="x", pady=(8, 2))
+        for day_name in ("Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"):
+            tk.Label(weekdays, text=day_name, font=FONT_SMALL,
+                     fg=TEXT_SEC, bg=WHITE, width=4).pack(side="left")
+
+        self._days_frame = tk.Frame(shell, bg=WHITE)
+        self._days_frame.pack()
+
+        footer = tk.Frame(shell, bg=WHITE)
+        footer.pack(fill="x", pady=(8, 0))
+        tk.Button(footer, text="Hoy", font=FONT_SMALL,
+                  bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
+                  padx=10, pady=4, cursor="hand2",
+                  activebackground=PURPLE_LIGHT,
+                  command=lambda: self._select_date(date.today())).pack(side="left")
+        tk.Button(footer, text="Limpiar", font=FONT_SMALL,
+                  bg=WHITE, fg=TEXT_SEC, relief="flat", bd=0,
+                  padx=10, pady=4, cursor="hand2",
+                  activebackground=GRAY_BG,
+                  command=self.clear).pack(side="right")
+
+        self._render_calendar()
+        self._popup.grab_set()
+        self._popup.focus_set()
+
+    def _nav_button(self, parent, text, command):
+        return tk.Button(parent, text=text, font=("Segoe UI", 13, "bold"),
+                         bg=WHITE, fg=PURPLE, relief="flat", bd=0,
+                         width=3, cursor="hand2",
+                         activebackground=PURPLE_LIGHT,
+                         activeforeground=PURPLE_DARK,
+                         command=command)
+
+    def _previous_month(self):
+        if self._shown_month == 1:
+            self._shown_month = 12
+            self._shown_year -= 1
+        else:
+            self._shown_month -= 1
+        self._render_calendar()
+
+    def _next_month(self):
+        if self._shown_month == 12:
+            self._shown_month = 1
+            self._shown_year += 1
+        else:
+            self._shown_month += 1
+        self._render_calendar()
+
+    def _render_calendar(self):
+        if not self._days_frame:
+            return
+
+        for child in self._days_frame.winfo_children():
+            child.destroy()
+
+        month_name = self._month_names[self._shown_month]
+        self._title_var.set(f"{month_name} {self._shown_year}")
+
+        month = calendar.Calendar(firstweekday=0).monthdatescalendar(
+            self._shown_year, self._shown_month
+        )
+        today = date.today()
+
+        for week in month:
+            row = tk.Frame(self._days_frame, bg=WHITE)
+            row.pack(fill="x")
+            for day in week:
+                in_month = day.month == self._shown_month
+                is_selected = day == self._selected
+                is_today = day == today
+                bg = PURPLE if is_selected else (PURPLE_LIGHT if is_today else WHITE)
+                fg = WHITE if is_selected else (TEXT_PRI if in_month else TEXT_HINT)
+
+                btn = tk.Button(
+                    row, text=str(day.day), font=FONT_BODY,
+                    width=4, height=1, relief="flat", bd=0,
+                    bg=bg, fg=fg, cursor="hand2",
+                    activebackground=PURPLE_MID,
+                    activeforeground=WHITE,
+                    command=lambda d=day: self._select_date(d),
+                )
+                btn.pack(side="left", padx=1, pady=1)
+
+    def _select_date(self, selected):
+        self.set(selected.strftime("%Y-%m-%d"))
+        self._close_picker()
+
+    def _close_picker(self):
+        if self._popup and self._popup.winfo_exists():
+            self._popup.grab_release()
+            self._popup.destroy()
+            parent = self.winfo_toplevel()
+            if parent and parent.winfo_exists():
+                try:
+                    parent.grab_set()
+                except tk.TclError:
+                    pass
+        self._popup = None
+
+    def get(self):
+        return self._var.get()
+
+    def set(self, value):
+        parsed = self._parse_date(value)
+        if parsed:
+            self._selected = parsed
+            self._shown_year = parsed.year
+            self._shown_month = parsed.month
+            self._var.set(parsed.strftime("%Y-%m-%d"))
+        else:
+            self._var.set("")
+
+    def clear(self):
+        self._var.set("")
+        self._close_picker()
 
 
 # ── LabeledSpinbox ─────────────────────────────────────────────────────────────

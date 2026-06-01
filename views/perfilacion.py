@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from components.theme import *
 from components.widgets import (
-    RadioGroup, LabeledEntry, LabeledCombo, LabeledSpinbox, SectionHeader
+    RadioGroup, LabeledEntry, LabeledCombo, LabeledSpinbox, SectionHeader,
+    DatePickerEntry
 )
 from data.database import guardar_lead, update_lead, get_lead_by_id
 
@@ -219,7 +220,7 @@ class PerfilacionDialog(tk.Toplevel):
         fd.pack(fill="x", pady=3)
         tk.Label(fd, text="Fecha (AAAA-MM-DD)", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=18, anchor="w").pack(side="left")
-        self._fecha_seg = ttk.Entry(fd, font=FONT_BODY, width=14)
+        self._fecha_seg = DatePickerEntry(fd, bg=WHITE, width=14)
         self._fecha_seg.pack(side="left", ipady=3)
 
         # Hora
@@ -274,7 +275,7 @@ class PerfilacionDialog(tk.Toplevel):
         if d.get("agendar_llamada"):
             self._agendar_var.set(True)
             self._toggle_seguimiento()
-            self._fecha_seg.insert(0, d.get("fecha_seguimiento") or "")
+            self._fecha_seg.set(d.get("fecha_seguimiento") or "")
             self._hora_seg_var.set(d.get("hora_seguimiento") or "")
             seg_notas = d.get("seguimiento_notas") or ""
             if seg_notas:
