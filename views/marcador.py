@@ -182,7 +182,7 @@ class MarcadorView(tk.Frame):
         tk.Label(r1, text="Número", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._line_status = RadioGroup(r1, [
-            {"label": "1 Inactivo", "value": "dead", "style": "negative"},
+            {"label": "Inactivo", "value": "dead", "style": "negative"},
             {"label": "Vivo",       "value": "alive", "style": "positive"},
         ], callback=self._on_line_status, bg=WHITE)
         self._line_status.pack(side="left")
@@ -192,9 +192,9 @@ class MarcadorView(tk.Frame):
         tk.Label(self._answer_row, text="Respuesta", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._answer_status = RadioGroup(self._answer_row, [
-            {"label": "2 No contestó", "value": "not_answered", "style": "negative"},
-            {"label": "3 Buzón",       "value": "voicemail",    "style": "neutral"},
-            {"label": "4 Contestó",    "value": "answered",     "style": "positive"},
+            {"label": "No contestó", "value": "not_answered", "style": "negative"},
+            {"label": "Buzón",       "value": "voicemail",    "style": "neutral"},
+            {"label": "Contestó",    "value": "answered",     "style": "positive"},
         ], callback=self._on_answer_status, bg=WHITE)
         self._answer_status.pack(side="left")
 
@@ -203,8 +203,8 @@ class MarcadorView(tk.Frame):
         tk.Label(self._retention_row, text="¿Retuvo?", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._retention = RadioGroup(self._retention_row, [
-            {"label": "5 Retenido",    "value": "retained",     "style": "positive"},
-            {"label": "6 No retenido", "value": "not_retained", "style": "negative"},
+            {"label": "Retenido",    "value": "retained",     "style": "positive"},
+            {"label": "No retenido", "value": "not_retained", "style": "negative"},
         ], callback=self._on_retention, bg=WHITE)
         self._retention.pack(side="left")
 
@@ -213,8 +213,8 @@ class MarcadorView(tk.Frame):
         tk.Label(self._lead_status_row, text="Lead", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._lead_status = RadioGroup(self._lead_status_row, [
-            {"label": "7 Lead",    "value": "lead",     "style": "positive"},
-            {"label": "8 No lead", "value": "not_lead", "style": "negative"},
+            {"label": "Lead",    "value": "lead",     "style": "positive"},
+            {"label": "No lead", "value": "not_lead", "style": "negative"},
         ], callback=self._on_lead_status, bg=WHITE)
         self._lead_status.pack(side="left")
 
@@ -223,10 +223,8 @@ class MarcadorView(tk.Frame):
         tk.Label(self._callback_row, text="Callback", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._callback_tag = RadioGroup(self._callback_row, [
-            {"label": "Sin callback", "value": "none", "style": "default"},
-            {"label": "Buzón retry", "value": "voicemail_retry", "style": "neutral"},
+            {"label": "No llamar", "value": "none", "style": "default"},
             {"label": "Llamar luego", "value": "call_later", "style": "info"},
-            {"label": "Follow-up", "value": "follow_up", "style": "teal"},
         ], bg=WHITE)
         self._callback_tag.pack(side="left")
 
