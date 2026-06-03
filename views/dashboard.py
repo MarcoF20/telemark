@@ -49,8 +49,8 @@ class DashboardView(tk.Frame):
             ("alive",                "Activos",        GREEN),
             ("answered",             "Contestaron",    BLUE),
             ("retained",             "Retenidas",      TEAL),
-            ("leads",                "Leads",          PURPLE),
-            ("lead_conversion_rate", "Conversión lead", PURPLE),
+            ("leads",                "Leads",          PRIMARY),
+            ("lead_conversion_rate", "Conversión lead", PRIMARY),
         ]
         for i, (key, label, color) in enumerate(metrics):
             card = StatCard(cards_grid, label, "0", color=color, bg=WHITE)
@@ -75,7 +75,7 @@ class DashboardView(tk.Frame):
             ("alive",    "Activos",     GREEN_MID),
             ("answered", "Contestaron", BLUE_MID),
             ("retained", "Retenidas",   TEAL_MID),
-            ("leads",    "Leads",       PURPLE),
+            ("leads",    "Leads",       PRIMARY),
         ]
         for key, label, color in funnel_defs:
             bar = FunnelBar(left, label, 0, 1, color=color, bg=WHITE)
@@ -132,7 +132,7 @@ class DashboardView(tk.Frame):
 
         if lead.get("perfilado"):
             tk.Label(row, text="✓ perfilado", font=FONT_SMALL,
-                     bg=PURPLE_LIGHT, fg=PURPLE).pack(side="right", padx=2)
+                     bg=PRIMARY_LIGHT, fg=PRIMARY).pack(side="right", padx=2)
 
         info = tk.Frame(row, bg=WHITE)
         info.pack(side="left", fill="x", padx=8)

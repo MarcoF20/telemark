@@ -70,7 +70,7 @@ class HistorialView(tk.Frame):
 
         for label, cmd, bg_, fg_ in [
             ("↻ Actualizar",   self.refresh,    GRAY_BG,      TEXT_SEC),
-            ("⬇ Exportar CSV", self._export,    PURPLE_LIGHT, PURPLE),
+            ("⬇ Exportar CSV", self._export,    PRIMARY_LIGHT, PRIMARY),
         ]:
             tk.Button(bar, text=label, font=FONT_SMALL,
                       bg=bg_, fg=fg_, relief="flat", bd=0,

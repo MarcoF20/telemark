@@ -2,10 +2,10 @@ import tkinter as tk
 from tkinter import ttk
 
 # ── Palette ────────────────────────────────────────────────────────────────────
-PURPLE       = "#534AB7"
-PURPLE_LIGHT = "#EEEDFE"
-PURPLE_MID   = "#7F77DD"
-PURPLE_DARK  = "#3C3489"
+PRIMARY       = "#2563EB"
+PRIMARY_LIGHT = "#DBEAFE"
+PRIMARY_MID   = "#60A5FA"
+PRIMARY_DARK  = "#1E40AF"
 GREEN        = "#3B6D11"
 GREEN_LIGHT  = "#EAF3DE"
 GREEN_MID    = "#639922"
@@ -84,7 +84,7 @@ def apply_theme(root: tk.Tk):
         bordercolor=BORDER, insertcolor=TEXT_PRI,
         relief="flat", padding=(8, 5))
     style.map("TEntry",
-        bordercolor=[("focus", PURPLE)],
+        bordercolor=[("focus", PRIMARY)],
         fieldbackground=[("focus", WHITE)])
 
     # Scrollbar
@@ -103,8 +103,8 @@ def apply_theme(root: tk.Tk):
         background=GRAY_BG, foreground=TEXT_SEC,
         font=FONT_SMALL, relief="flat", bordercolor=BORDER)
     style.map("Treeview",
-        background=[("selected", PURPLE_LIGHT)],
-        foreground=[("selected", PURPLE)])
+        background=[("selected", PRIMARY_LIGHT)],
+        foreground=[("selected", PRIMARY)])
 
     # Radiobutton
     style.configure("TRadiobutton",
@@ -119,11 +119,11 @@ def apply_theme(root: tk.Tk):
     # Combobox
     style.configure("TCombobox",
         fieldbackground=GRAY_BG, foreground=TEXT_PRI,
-        font=FONT_BODY, selectbackground=PURPLE_LIGHT,
-        selectforeground=PURPLE)
+        font=FONT_BODY, selectbackground=PRIMARY_LIGHT,
+        selectforeground=PRIMARY)
     style.map("TCombobox",
         fieldbackground=[("readonly", GRAY_BG)],
-        selectbackground=[("readonly", PURPLE_LIGHT)])
+        selectbackground=[("readonly", PRIMARY_LIGHT)])
 
     # Notebook (tabs)
     style.configure("TNotebook",
@@ -133,7 +133,7 @@ def apply_theme(root: tk.Tk):
         font=FONT_BODY, padding=[14, 7], bordercolor=BORDER)
     style.map("TNotebook.Tab",
         background=[("selected", WHITE)],
-        foreground=[("selected", PURPLE)],
+        foreground=[("selected", PRIMARY)],
         font=[("selected", ("Segoe UI", 10, "bold"))])
 
 

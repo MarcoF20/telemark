@@ -93,18 +93,18 @@ class MarcadorView(tk.Frame):
 
     def _build(self):
         # Top bar
-        topbar = tk.Frame(self, bg=PURPLE, padx=PAD, pady=PAD_S)
+        topbar = tk.Frame(self, bg=PRIMARY, padx=PAD, pady=PAD_S)
         topbar.pack(fill="x")
         tk.Label(topbar, text="Marcador", font=FONT_TITLE,
-                 fg=WHITE, bg=PURPLE).pack(side="left")
+                 fg=WHITE, bg=PRIMARY).pack(side="left")
         self._sesion_lbl = tk.Label(topbar, text="Sin sesión",
-                                     font=FONT_SMALL, fg="#C5C1F0", bg=PURPLE)
+                                     font=FONT_SMALL, fg="#93C5FD", bg=PRIMARY)
         self._sesion_lbl.pack(side="left", padx=(12, 0))
 
         tk.Button(topbar, text="↺  Nueva sesión", font=FONT_SMALL,
-                  bg=PURPLE_DARK, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY_DARK, fg=WHITE, relief="flat", bd=0,
                   padx=10, pady=4, cursor="hand2",
-                  activebackground=PURPLE_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=WHITE,
                   command=self._confirm_nueva_sesion).pack(side="right")
 
         # Step indicator
@@ -394,9 +394,9 @@ class MarcadorView(tk.Frame):
         btn_row = tk.Frame(c, bg=WHITE)
         btn_row.pack(fill="x", pady=(PAD_S, 0))
         tk.Button(btn_row, text="  Abrir perfilación completa ↗  ",
-                  font=FONT_BODY, bg=PURPLE_LIGHT, fg=PURPLE,
+                  font=FONT_BODY, bg=PRIMARY_LIGHT, fg=PRIMARY,
                   relief="flat", bd=0, padx=12, pady=6, cursor="hand2",
-                  highlightbackground=PURPLE_MID, highlightthickness=1,
+                  highlightbackground=PRIMARY_MID, highlightthickness=1,
                   command=self._abrir_perfilacion).pack(side="left")
 
     def _abrir_perfilacion(self):
@@ -431,9 +431,9 @@ class MarcadorView(tk.Frame):
         bar.pack(fill="x", side="bottom")
 
         tk.Button(bar, text="  Guardar lead rápido  ", font=FONT_BODY,
-                  bg=PURPLE, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
                   padx=14, pady=6, cursor="hand2",
-                  activebackground=PURPLE_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=WHITE,
                   command=self._guardar_lead_rapido).pack(side="left", padx=(0, 8))
 
         tk.Button(bar, text="Nueva llamada", font=FONT_BODY,

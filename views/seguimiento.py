@@ -15,12 +15,12 @@ class SeguimientoView(tk.Frame):
         self.refresh()
 
     def _build(self):
-        hdr = tk.Frame(self, bg=PURPLE, padx=PAD, pady=PAD_S)
+        hdr = tk.Frame(self, bg=PRIMARY, padx=PAD, pady=PAD_S)
         hdr.pack(fill="x")
         tk.Label(hdr, text="📅  Seguimientos agendados",
-                 font=FONT_TITLE, fg=WHITE, bg=PURPLE).pack(side="left")
+                 font=FONT_TITLE, fg=WHITE, bg=PRIMARY).pack(side="left")
         tk.Button(hdr, text="↻  Actualizar", font=FONT_SMALL,
-                  bg=PURPLE_DARK, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY_DARK, fg=WHITE, relief="flat", bd=0,
                   padx=10, pady=4, cursor="hand2",
                   command=self.refresh).pack(side="right")
 
@@ -76,7 +76,7 @@ class SeguimientoView(tk.Frame):
             # Date header
             if fecha == today:
                 label_text = f"Hoy — {fecha}"
-                label_bg, label_fg = PURPLE_LIGHT, PURPLE
+                label_bg, label_fg = PRIMARY_LIGHT, PRIMARY
             elif fecha < today:
                 label_text = f"Vencido — {fecha}"
                 label_bg, label_fg = RED_LIGHT, RED
@@ -142,7 +142,7 @@ class SeguimientoView(tk.Frame):
 
         if lead.get("perfilado"):
             tk.Label(right, text=" ✓ perfilado ", font=FONT_SMALL,
-                     bg=PURPLE_LIGHT, fg=PURPLE).pack(anchor="e", pady=(0, 4))
+                     bg=PRIMARY_LIGHT, fg=PRIMARY).pack(anchor="e", pady=(0, 4))
 
         if is_past:
             tk.Label(right, text=" ⚠ vencido ", font=FONT_SMALL,

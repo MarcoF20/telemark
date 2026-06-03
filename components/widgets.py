@@ -14,7 +14,7 @@ class RadioGroup(tk.Frame):
         "neutral":  (AMBER_LIGHT,  AMBER,  AMBER_MID),
         "info":     (BLUE_LIGHT,   BLUE,   BLUE_MID),
         "teal":     (TEAL_LIGHT,   TEAL,   TEAL_MID),
-        "default":  (PURPLE_LIGHT, PURPLE, PURPLE_MID),
+        "default":  (PRIMARY_LIGHT, PRIMARY, PRIMARY_MID),
     }
 
     def __init__(self, parent, options: list, callback=None, bg=WHITE, **kwargs):
@@ -170,7 +170,7 @@ class DatePickerEntry(tk.Frame):
             self, text="📅", font=FONT_BODY,
             bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
             padx=8, pady=4, cursor="hand2",
-            activebackground=PURPLE_LIGHT,
+            activebackground=PRIMARY_LIGHT,
             command=self._open_picker,
         )
         self._button.pack(side="left", padx=(6, 0))
@@ -228,7 +228,7 @@ class DatePickerEntry(tk.Frame):
         tk.Button(footer, text="Hoy", font=FONT_SMALL,
                   bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
                   padx=10, pady=4, cursor="hand2",
-                  activebackground=PURPLE_LIGHT,
+                  activebackground=PRIMARY_LIGHT,
                   command=lambda: self._select_date(date.today())).pack(side="left")
         tk.Button(footer, text="Limpiar", font=FONT_SMALL,
                   bg=WHITE, fg=TEXT_SEC, relief="flat", bd=0,
@@ -242,10 +242,10 @@ class DatePickerEntry(tk.Frame):
 
     def _nav_button(self, parent, text, command):
         return tk.Button(parent, text=text, font=("Segoe UI", 13, "bold"),
-                         bg=WHITE, fg=PURPLE, relief="flat", bd=0,
+                         bg=WHITE, fg=PRIMARY, relief="flat", bd=0,
                          width=3, cursor="hand2",
-                         activebackground=PURPLE_LIGHT,
-                         activeforeground=PURPLE_DARK,
+                         activebackground=PRIMARY_LIGHT,
+                         activeforeground=PRIMARY_DARK,
                          command=command)
 
     def _previous_month(self):
@@ -286,14 +286,14 @@ class DatePickerEntry(tk.Frame):
                 in_month = day.month == self._shown_month
                 is_selected = day == self._selected
                 is_today = day == today
-                bg = PURPLE if is_selected else (PURPLE_LIGHT if is_today else WHITE)
+                bg = PRIMARY if is_selected else (PRIMARY_LIGHT if is_today else WHITE)
                 fg = WHITE if is_selected else (TEXT_PRI if in_month else TEXT_HINT)
 
                 btn = tk.Button(
                     row, text=str(day.day), font=FONT_BODY,
                     width=4, height=1, relief="flat", bd=0,
                     bg=bg, fg=fg, cursor="hand2",
-                    activebackground=PURPLE_MID,
+                    activebackground=PRIMARY_MID,
                     activeforeground=WHITE,
                     command=lambda d=day: self._select_date(d),
                 )
@@ -387,7 +387,7 @@ class StatCard(tk.Frame):
 
 class FunnelBar(tk.Frame):
     def __init__(self, parent, label: str, value: int, total: int,
-                 color=PURPLE, bg=WHITE, **kwargs):
+                 color=PRIMARY, bg=WHITE, **kwargs):
         super().__init__(parent, bg=bg, **kwargs)
         self._color = color
         self._total = max(total, 1)
@@ -456,8 +456,8 @@ class StepIndicator(tk.Frame):
                 lbl.config(bg=GREEN_LIGHT, fg=GREEN,
                             highlightbackground=GREEN_MID)
             elif i == index:
-                lbl.config(bg=PURPLE, fg=WHITE,
-                            highlightbackground=PURPLE_DARK)
+                lbl.config(bg=PRIMARY, fg=WHITE,
+                            highlightbackground=PRIMARY_DARK)
             else:
                 lbl.config(bg=GRAY_BG, fg=TEXT_SEC,
                             highlightbackground=BORDER)
@@ -509,9 +509,9 @@ class NumberDisplay(tk.Frame):
         self._entry.bind("<Return>", lambda e: self._confirm())
 
         self._confirm_btn = tk.Button(mid, text="✓", font=FONT_H2,
-                  bg=PURPLE, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
                   padx=12, pady=6, cursor="hand2",
-                  activebackground=PURPLE_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=WHITE,
                   command=self._confirm)
         self._confirm_btn.pack(side="left", padx=(6, 0))
 
@@ -529,7 +529,7 @@ class NumberDisplay(tk.Frame):
 
         self._confirmed_lbl = tk.Label(self, text="",
                                         font=("Segoe UI", 11, "bold"),
-                                        fg=PURPLE, bg=self._bg)
+                                        fg=PRIMARY, bg=self._bg)
         self._confirmed_lbl.pack(anchor="w", pady=(4, 0))
 
     def _confirm(self):

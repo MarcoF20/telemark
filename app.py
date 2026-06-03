@@ -46,12 +46,12 @@ class App(tk.Tk):
         sidebar.pack_propagate(False)
 
         # Logo block
-        logo = tk.Frame(sidebar, bg=PURPLE, padx=14, pady=16)
+        logo = tk.Frame(sidebar, bg=PRIMARY, padx=14, pady=16)
         logo.pack(fill="x")
         tk.Label(logo, text="TeleAssist", font=("Segoe UI", 14, "bold"),
-                 fg=WHITE, bg=PURPLE).pack(anchor="w")
+                 fg=WHITE, bg=PRIMARY).pack(anchor="w")
         tk.Label(logo, text="funeraria · local",
-                 font=FONT_SMALL, fg="#C5C1F0", bg=PURPLE).pack(anchor="w")
+                 font=FONT_SMALL, fg="#93C5FD", bg=PRIMARY).pack(anchor="w")
 
         # Nav
         nav = tk.Frame(sidebar, bg=GRAY_BG, padx=8, pady=10)
@@ -62,8 +62,8 @@ class App(tk.Tk):
                 bg=GRAY_BG, fg=TEXT_SEC,
                 relief="flat", bd=0, anchor="w",
                 padx=10, pady=8, cursor="hand2",
-                activebackground=PURPLE_LIGHT,
-                activeforeground=PURPLE,
+                activebackground=PRIMARY_LIGHT,
+                activeforeground=PRIMARY,
                 command=lambda k=key: self._navigate(k),
             )
             btn.pack(fill="x", pady=1)
@@ -110,7 +110,7 @@ class App(tk.Tk):
             self._views[key].refresh()
             self._dirty_views.discard(key)
         self._nav_btns[key].config(
-            bg=PURPLE_LIGHT, fg=PURPLE,
+            bg=PRIMARY_LIGHT, fg=PRIMARY,
             font=("Segoe UI", 10, "bold"))
         self._active = key
 

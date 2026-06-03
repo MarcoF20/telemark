@@ -1,8 +1,46 @@
 import sqlite3
 import os
+import shutil
+import sys
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "teleassist.db")
+APP_NAME = "TeleAssist"
+
+
+def _source_db_path():
+    if getattr(sys, "frozen", False):
+        return os.path.join(sys._MEIPASS, "data", "teleassist.db")
+    return os.path.join(os.path.dirname(__file__), "teleassist.db")
+
+
+def _user_data_dir():
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        return os.path.join(base, APP_NAME)
+    if sys.platform == "darwin":
+        return os.path.join(
+            os.path.expanduser("~"), "Library", "Application Support", APP_NAME
+        )
+    base = os.environ.get("XDG_DATA_HOME") or os.path.join(
+        os.path.expanduser("~"), ".local", "share"
+    )
+    return os.path.join(base, APP_NAME.lower())
+
+
+def _database_path():
+    if not getattr(sys, "frozen", False):
+        return _source_db_path()
+
+    data_dir = _user_data_dir()
+    os.makedirs(data_dir, exist_ok=True)
+    db_path = os.path.join(data_dir, "teleassist.db")
+    source_path = _source_db_path()
+    if not os.path.exists(db_path) and os.path.exists(source_path):
+        shutil.copy2(source_path, db_path)
+    return db_path
+
+
+DB_PATH = _database_path()
 LINE_STATUSES = {"alive", "dead"}
 ANSWER_STATUSES = {"answered", "not_answered", "voicemail", "not_applicable"}
 RETENTION_STATUSES = {"retained", "not_retained", "not_applicable"}
