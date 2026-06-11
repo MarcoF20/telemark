@@ -11,8 +11,8 @@ from views.historial   import HistorialView
 
 NAV_ITEMS = [
     ("marcador",     "📞  Marcador",      MarcadorView),
-    ("dashboard",    "📊  Dashboard",     DashboardView),
-    ("leads",        "👤  Leads",         LeadsView),
+    ("dashboard",    "📊  Metricas",     DashboardView),
+    ("leads",        "👤  Prospectos",         LeadsView),
     ("seguimiento",  "📅  Seguimientos",  SeguimientoView),
     ("historial",    "📋  Historial",     HistorialView),
 ]

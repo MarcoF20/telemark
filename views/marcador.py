@@ -4,7 +4,7 @@ from tkinter import ttk, messagebox
 from components.theme import *
 from components.widgets import (
     RadioGroup, SectionHeader, StepIndicator,
-    LabeledEntry, NumberDisplay
+    LabeledEntry, NumberDisplay, DatePickerEntry
 )
 from views.perfilacion import PerfilacionDialog
 from data.database import (
@@ -17,6 +17,75 @@ from data.database import (
 DEBUG_SAVE_TIMING = False
 
 
+class BinaryToggle(tk.Frame):
+    STYLES = {
+        "positive": (GREEN_LIGHT, GREEN, GREEN_MID),
+        "negative": (RED_LIGHT, RED, RED_MID),
+    }
+
+    def __init__(self, parent, negative: dict, positive: dict,
+                 callback=None, bg=WHITE, **kwargs):
+        super().__init__(parent, bg=bg, **kwargs)
+        self._toggle_options = {
+            negative["value"]: {**negative, "style": "negative"},
+            positive["value"]: {**positive, "style": "positive"},
+        }
+        self._negative_value = negative["value"]
+        self._positive_value = positive["value"]
+        self._value = self._negative_value
+        self._callback = callback
+        self._button = tk.Button(
+            self,
+            font=FONT_BODY,
+            relief="flat",
+            bd=0,
+            width=16,
+            padx=12,
+            pady=6,
+            cursor="hand2",
+            command=self.toggle,
+        )
+        self._button.pack(side="left")
+        self._apply()
+
+    def _apply(self):
+        option = self._toggle_options[self._value]
+        bg, fg, hi = self.STYLES[option["style"]]
+        self._button.config(
+            text=option["label"],
+            bg=bg,
+            fg=fg,
+            activebackground=bg,
+            activeforeground=fg,
+            highlightbackground=hi,
+            highlightcolor=hi,
+            highlightthickness=1,
+        )
+
+    def toggle(self):
+        next_value = (
+            self._positive_value
+            if self._value == self._negative_value
+            else self._negative_value
+        )
+        self.set(next_value)
+
+    def get(self):
+        return self._value
+
+    def set(self, value):
+        if value not in self._toggle_options:
+            return
+        self._value = value
+        self._apply()
+        if self._callback:
+            self._callback(value)
+
+    def reset(self):
+        self._value = self._negative_value
+        self._apply()
+
+
 class MarcadorView(tk.Frame):
 
     def __init__(self, parent, on_llamada_saved=None, **kwargs):
@@ -24,6 +93,7 @@ class MarcadorView(tk.Frame):
         self._on_saved  = on_llamada_saved
         self._llamada_id = None
         self._sesion_id  = None
+        self._hotkey_guide_visible = get_config("marcador_hotkeys_visible", "1") != "0"
         self._build()
         self._bind_hotkeys()
         self._init_sesion()
@@ -38,9 +108,7 @@ class MarcadorView(tk.Frame):
             "<Control-Key-3>": self._mark_voicemail,
             "<Control-Key-4>": self._mark_answered,
             "<Control-Key-5>": lambda: self._mark_retention("retained"),
-            "<Control-Key-6>": lambda: self._mark_retention("not_retained"),
-            "<Control-Key-7>": lambda: self._mark_lead_status("lead"),
-            "<Control-Key-8>": lambda: self._mark_lead_status("not_lead"),
+            "<Control-Key-6>": lambda: self._mark_lead_status("lead"),
             "<Control-l>": self._hotkey_save_lead,
             "<Control-L>": self._hotkey_save_lead,
         }
@@ -74,6 +142,9 @@ class MarcadorView(tk.Frame):
         last = get_config("ultimo_numero")
         if last:
             self._num_display.set_number(last)
+            restored = self._num_display.get_number()
+            if restored:
+                self._on_number_change(restored, confirmed=True)
 
     def _nueva_sesion(self):
         if self._sesion_id:
@@ -177,17 +248,28 @@ class MarcadorView(tk.Frame):
         SectionHeader(c, "Estado de la llamada", bg=WHITE).pack(
             fill="x", pady=(0, PAD_S))
 
-        r1 = tk.Frame(c, bg=WHITE)
+        body = tk.Frame(c, bg=WHITE)
+        body.pack(fill="x")
+        form = tk.Frame(body, bg=WHITE)
+        form.pack(side="left", fill="both", expand=True)
+        guide_col = tk.Frame(body, bg=WHITE)
+        guide_col.pack(side="right", anchor="n", padx=(PAD, 0))
+        tk.Frame(guide_col, bg=WHITE, width=220, height=1).pack(anchor="w")
+
+        r1 = tk.Frame(form, bg=WHITE)
         r1.pack(fill="x", pady=3)
         tk.Label(r1, text="Número", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._line_status = RadioGroup(r1, [
-            {"label": "Inactivo", "value": "dead", "style": "negative"},
-            {"label": "Vivo",       "value": "alive", "style": "positive"},
-        ], callback=self._on_line_status, bg=WHITE)
+        self._line_status = BinaryToggle(
+            r1,
+            negative={"label": "Inactivo", "value": "dead"},
+            positive={"label": "Activo", "value": "alive"},
+            callback=self._on_line_status,
+            bg=WHITE,
+        )
         self._line_status.pack(side="left")
 
-        self._answer_row = tk.Frame(c, bg=WHITE)
+        self._answer_row = tk.Frame(form, bg=WHITE)
         self._answer_row.pack_forget()
         tk.Label(self._answer_row, text="Respuesta", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
@@ -198,37 +280,45 @@ class MarcadorView(tk.Frame):
         ], callback=self._on_answer_status, bg=WHITE)
         self._answer_status.pack(side="left")
 
-        self._retention_row = tk.Frame(c, bg=WHITE)
+        self._retention_row = tk.Frame(form, bg=WHITE)
         self._retention_row.pack_forget()
         tk.Label(self._retention_row, text="¿Retuvo?", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._retention = RadioGroup(self._retention_row, [
-            {"label": "Retenido",    "value": "retained",     "style": "positive"},
-            {"label": "No retenido", "value": "not_retained", "style": "negative"},
-        ], callback=self._on_retention, bg=WHITE)
+        self._retention = BinaryToggle(
+            self._retention_row,
+            negative={"label": "No retenido", "value": "not_retained"},
+            positive={"label": "Retenido", "value": "retained"},
+            callback=self._on_retention,
+            bg=WHITE,
+        )
         self._retention.pack(side="left")
 
-        self._lead_status_row = tk.Frame(c, bg=WHITE)
+        self._lead_status_row = tk.Frame(form, bg=WHITE)
         self._lead_status_row.pack_forget()
         tk.Label(self._lead_status_row, text="Lead", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._lead_status = RadioGroup(self._lead_status_row, [
-            {"label": "Lead",    "value": "lead",     "style": "positive"},
-            {"label": "No lead", "value": "not_lead", "style": "negative"},
-        ], callback=self._on_lead_status, bg=WHITE)
+        self._lead_status = BinaryToggle(
+            self._lead_status_row,
+            negative={"label": "No prospecto", "value": "not_lead"},
+            positive={"label": "Prospecto", "value": "lead"},
+            callback=self._on_lead_status,
+            bg=WHITE,
+        )
         self._lead_status.pack(side="left")
 
-        self._callback_row = tk.Frame(c, bg=WHITE)
+        self._callback_row = tk.Frame(form, bg=WHITE)
         self._callback_row.pack_forget()
         tk.Label(self._callback_row, text="Callback", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
-        self._callback_tag = RadioGroup(self._callback_row, [
-            {"label": "No llamar", "value": "none", "style": "default"},
-            {"label": "Llamar luego", "value": "call_later", "style": "info"},
-        ], bg=WHITE)
+        self._callback_tag = BinaryToggle(
+            self._callback_row,
+            negative={"label": "No llamar", "value": "none"},
+            positive={"label": "Llamar luego", "value": "call_later"},
+            bg=WHITE,
+        )
         self._callback_tag.pack(side="left")
 
-        self._notas_row = tk.Frame(c, bg=WHITE)
+        self._notas_row = tk.Frame(form, bg=WHITE)
         self._notas_row.pack(fill="x", pady=(PAD_S, 0))
         tk.Label(self._notas_row, text="Notas", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="nw").pack(side="left", pady=(3, 0))
@@ -238,18 +328,22 @@ class MarcadorView(tk.Frame):
                                       highlightbackground=BORDER, highlightthickness=1)
         self._notas_estado.pack(side="left")
 
-        tk.Button(c, text="Guardar sin lead →", font=FONT_SMALL,
-                  bg=GRAY_BG, fg=TEXT_SEC, relief="flat", bd=0,
-                  padx=10, pady=4, cursor="hand2",
-                  highlightbackground=BORDER, highlightthickness=1,
-                  command=self._guardar_sin_lead).pack(
-                      anchor="w", pady=(PAD_S, 0))
-
-        self._build_hotkey_guide(c)
+        self._build_hotkey_guide(guide_col)
 
     def _build_hotkey_guide(self, parent):
-        guide = tk.Frame(parent, bg=WHITE)
-        guide.pack(fill="x", pady=(PAD_S, 0))
+        self._hotkey_toggle_lbl = tk.Label(
+            parent,
+            font=("Segoe UI", 9, "bold"),
+            fg=PRIMARY,
+            bg=WHITE,
+            cursor="hand2",
+            anchor="w",
+            width=18,
+        )
+        self._hotkey_toggle_lbl.pack(anchor="w", pady=(3, 4))
+        self._hotkey_toggle_lbl.bind("<Button-1>", self._toggle_hotkey_guide)
+
+        self._hotkey_guide = tk.Frame(parent, bg=WHITE)
 
         items = [
             "Ctrl+1: Inactivo",
@@ -257,22 +351,35 @@ class MarcadorView(tk.Frame):
             "Ctrl+3: Buzón",
             "Ctrl+4: Contestó",
             "Ctrl+5: Retenido",
-            "Ctrl+6: No retenido",
-            "Ctrl+7: Lead",
-            "Ctrl+8: No lead",
+            "Ctrl+6: Prospecto",
             "Ctrl+Enter: Guardar llamada",
             "Ctrl+N: Siguiente número",
         ]
 
         for text in items:
             tk.Label(
-                guide,
+                self._hotkey_guide,
                 text=text,
                 font=FONT_SMALL,
                 fg=GRAY_DARK,
                 bg=WHITE,
                 anchor="w",
             ).pack(anchor="w")
+        self._refresh_hotkey_guide()
+
+    def _toggle_hotkey_guide(self, event=None):
+        self._hotkey_guide_visible = not self._hotkey_guide_visible
+        set_config("marcador_hotkeys_visible",
+                   "1" if self._hotkey_guide_visible else "0")
+        self._refresh_hotkey_guide()
+
+    def _refresh_hotkey_guide(self):
+        if self._hotkey_guide_visible:
+            self._hotkey_toggle_lbl.config(text="▲ Ocultar atajos")
+            self._hotkey_guide.pack(anchor="w")
+        else:
+            self._hotkey_toggle_lbl.config(text="▶ Mostrar atajos")
+            self._hotkey_guide.pack_forget()
 
     def _on_line_status(self, value):
         self._answer_status.reset()
@@ -287,6 +394,7 @@ class MarcadorView(tk.Frame):
         if value == "alive":
             self._steps.set_step(1)
             self._answer_row.pack(fill="x", pady=3, before=self._notas_row)
+            self._answer_status.set("not_answered")
         else:
             self._steps.set_step(1)
             self._answer_row.pack_forget()
@@ -371,24 +479,28 @@ class MarcadorView(tk.Frame):
         c = tk.Frame(self._sec_lead_outer, bg=WHITE, padx=PAD, pady=PAD_S,
                      highlightbackground=BORDER, highlightthickness=1)
         c.pack(fill="x")
-        SectionHeader(c, "Lead — captura rápida", bg=WHITE).pack(
+        SectionHeader(c, "Prospecto — captura rápida", bg=WHITE).pack(
             fill="x", pady=(0, PAD_S))
 
         self._nombre_lead  = LabeledEntry(c, "Nombre",  "Nombre del contacto", bg=WHITE)
-        self._empresa_lead = LabeledEntry(c, "Empresa", "Empresa u organización", bg=WHITE)
-        for w in (self._nombre_lead, self._empresa_lead):
-            w.pack(fill="x", pady=2)
+        self._nombre_lead.pack(fill="x", pady=2)
 
-        ri = tk.Frame(c, bg=WHITE)
-        ri.pack(fill="x", pady=3)
-        tk.Label(ri, text="Interés", font=FONT_BODY, fg=TEXT_SEC,
+        rn = tk.Frame(c, bg=WHITE)
+        rn.pack(fill="x", pady=3)
+        tk.Label(rn, text="Notas", font=FONT_BODY, fg=TEXT_SEC,
+                 bg=WHITE, width=14, anchor="nw").pack(side="left", pady=(3, 0))
+        self._notas_lead = tk.Text(rn, font=FONT_BODY, height=2, width=42,
+                                    bg=GRAY_BG, fg=TEXT_PRI, relief="flat",
+                                    padx=8, pady=6,
+                                    highlightbackground=BORDER, highlightthickness=1)
+        self._notas_lead.pack(side="left", fill="x", expand=True)
+
+        fs = tk.Frame(c, bg=WHITE)
+        fs.pack(fill="x", pady=3)
+        tk.Label(fs, text="Seguimiento", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=14, anchor="w").pack(side="left")
-        self._interes_lead = RadioGroup(ri, [
-            {"label": "Alto",  "value": "alto",  "style": "positive"},
-            {"label": "Medio", "value": "medio", "style": "neutral"},
-            {"label": "Bajo",  "value": "bajo",  "style": "negative"},
-        ], bg=WHITE)
-        self._interes_lead.pack(side="left")
+        self._fecha_seg_lead = DatePickerEntry(fs, bg=WHITE, width=14)
+        self._fecha_seg_lead.pack(side="left", ipady=3)
 
         # Button to open full profiling
         btn_row = tk.Frame(c, bg=WHITE)
@@ -416,6 +528,7 @@ class MarcadorView(tk.Frame):
             llamada_id=self._llamada_id,
             sesion_id=self._sesion_id,
             on_saved=self._on_perfilacion_saved,
+            initial_data=self._lead_data(numero),
         )
 
     def _on_perfilacion_saved(self):
@@ -427,25 +540,24 @@ class MarcadorView(tk.Frame):
 
     def _build_actions(self):
         ttk.Separator(self, orient="horizontal").pack(fill="x", side="bottom")
-        bar = tk.Frame(self, bg=WHITE, padx=PAD, pady=PAD_S)
+        bar = tk.Frame(self, bg=WHITE, padx=PAD, pady=PAD)
         bar.pack(fill="x", side="bottom")
+        action_font = ("Segoe UI", 11, "bold")
 
-        tk.Button(bar, text="  Guardar lead rápido  ", font=FONT_BODY,
+        tk.Button(bar, text="Capturar prospecto", font=action_font,
                   bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
-                  padx=14, pady=6, cursor="hand2",
+                  padx=18, pady=10, cursor="hand2",
                   activebackground=PRIMARY_MID, activeforeground=WHITE,
-                  command=self._guardar_lead_rapido).pack(side="left", padx=(0, 8))
+                  command=self._guardar_lead_rapido).pack(
+                      side="left", fill="x", expand=True, padx=(0, 8))
 
-        tk.Button(bar, text="Nueva llamada", font=FONT_BODY,
-                  bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
-                  padx=12, pady=6, cursor="hand2",
-                  highlightbackground=BORDER, highlightthickness=1,
-                  command=self._reset).pack(side="left", padx=(0, 8))
-
-        tk.Button(bar, text="Descartar", font=FONT_BODY,
-                  bg=RED_LIGHT, fg=RED, relief="flat", bd=0,
-                  padx=12, pady=6, cursor="hand2",
-                  command=self._reset).pack(side="left")
+        tk.Button(bar, text="Guardar solo llamada", font=action_font,
+                  bg=PRIMARY_LIGHT, fg=PRIMARY_DARK, relief="flat", bd=0,
+                  padx=18, pady=10, cursor="hand2",
+                  activebackground=GRAY_BG, activeforeground=PRIMARY_DARK,
+                  highlightbackground=PRIMARY_MID, highlightthickness=1,
+                  command=self._guardar_sin_lead).pack(
+                      side="left", fill="x", expand=True)
 
     def _confirm_nueva_sesion(self):
         if messagebox.askyesno("Nueva sesión",
@@ -534,7 +646,7 @@ class MarcadorView(tk.Frame):
         if not line_status:
             if not silent:
                 messagebox.showwarning("Estado inválido",
-                                       "Marca si el número está vivo o muerto.")
+                                       "Marca si el número está activo o inactivo.")
             return False
 
         if line_status == "dead":
@@ -578,8 +690,12 @@ class MarcadorView(tk.Frame):
         return {
             "numero": numero,
             "nombre": self._nombre_lead.get(),
-            "empresa": self._empresa_lead.get(),
-            "interes": self._interes_lead.get() or "medio",
+            "empresa": "",
+            "interes": "medio",
+            "notas": self._notas_lead.get("1.0", "end").strip(),
+            "agendar_llamada": bool(self._fecha_seg_lead.get().strip()),
+            "fecha_seguimiento": self._fecha_seg_lead.get().strip(),
+            "seguimiento_notas": self._notas_lead.get("1.0", "end").strip(),
             "perfilado": False,
         }
 
@@ -594,8 +710,8 @@ class MarcadorView(tk.Frame):
         self._callback_tag.reset()
         self._notas_estado.delete("1.0", "end")
         self._nombre_lead.clear()
-        self._empresa_lead.clear()
-        self._interes_lead.reset()
+        self._notas_lead.delete("1.0", "end")
+        self._fecha_seg_lead.clear()
         self._sec_estado_outer.pack_forget()
         self._answer_row.pack_forget()
         self._retention_row.pack_forget()

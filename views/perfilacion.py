@@ -18,6 +18,7 @@ HORARIOS = [
     "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
     "17:00", "17:30", "18:00",
 ]
+FORM_LABEL_WIDTH = 22
 
 
 class PerfilacionDialog(tk.Toplevel):
@@ -26,7 +27,7 @@ class PerfilacionDialog(tk.Toplevel):
     def __init__(self, parent, lead_id: int | None = None,
                  numero: str = "", llamada_id: int | None = None,
                  sesion_id: int | None = None,
-                 on_saved=None):
+                 on_saved=None, initial_data: dict | None = None):
         super().__init__(parent)
         self._lead_id   = lead_id
         self._numero    = numero
@@ -34,6 +35,7 @@ class PerfilacionDialog(tk.Toplevel):
         self._sesion_id = sesion_id
         self._on_saved  = on_saved
         self._existing  = get_lead_by_id(lead_id) if lead_id else None
+        self._initial   = initial_data or {}
 
         self.title("Perfilación de cita" if not lead_id else "Editar lead")
         self.geometry("700x720")
@@ -44,6 +46,8 @@ class PerfilacionDialog(tk.Toplevel):
         self._build()
         if self._existing:
             self._populate()
+        elif self._initial:
+            self._populate_initial()
         self._make_modal()
 
     def _make_modal(self):
@@ -127,10 +131,10 @@ class PerfilacionDialog(tk.Toplevel):
 
     def _build_contacto(self):
         sec = self._section("Datos de contacto", "👤")
-        self._nombre  = LabeledEntry(sec, "Nombre completo", "Nombre completo del prospecto", bg=WHITE)
-        self._tel     = LabeledEntry(sec, "Teléfono",        "Número de contacto", bg=WHITE)
-        self._empresa = LabeledEntry(sec, "Empresa / Ref",   "Empresa u origen del contacto", bg=WHITE)
-        self._email   = LabeledEntry(sec, "Email",           "correo@ejemplo.com", bg=WHITE)
+        self._nombre  = LabeledEntry(sec, "Nombre completo", "Nombre completo del prospecto", bg=WHITE, label_width=FORM_LABEL_WIDTH, width=36)
+        self._tel     = LabeledEntry(sec, "Teléfono",        "Número de contacto", bg=WHITE, label_width=FORM_LABEL_WIDTH, width=36)
+        self._empresa = LabeledEntry(sec, "Empresa / Ref",   "Empresa u origen del contacto", bg=WHITE, label_width=FORM_LABEL_WIDTH, width=36)
+        self._email   = LabeledEntry(sec, "Email",           "correo@ejemplo.com", bg=WHITE, label_width=FORM_LABEL_WIDTH, width=36)
         for w in (self._nombre, self._tel, self._empresa, self._email):
             w.pack(fill="x", pady=3)
 
@@ -140,7 +144,7 @@ class PerfilacionDialog(tk.Toplevel):
         ri = tk.Frame(sec, bg=WHITE)
         ri.pack(fill="x", pady=3)
         tk.Label(ri, text="Nivel de interés", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=14, anchor="w").pack(side="left")
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="w").pack(side="left")
         self._interes = RadioGroup(ri, [
             {"label": "Alto",  "value": "alto",  "style": "positive"},
             {"label": "Medio", "value": "medio", "style": "neutral"},
@@ -151,7 +155,7 @@ class PerfilacionDialog(tk.Toplevel):
         rd = tk.Frame(sec, bg=WHITE)
         rd.pack(fill="x", pady=3)
         tk.Label(rd, text="Toma la decisión", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=14, anchor="w").pack(side="left")
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="w").pack(side="left")
         self._decisor = RadioGroup(rd, [
             {"label": "Solo",              "value": "solo",     "style": "positive"},
             {"label": "Con esposa/pareja", "value": "conjunto", "style": "neutral"},
@@ -162,7 +166,7 @@ class PerfilacionDialog(tk.Toplevel):
         rp = tk.Frame(sec, bg=WHITE)
         rp.pack(fill="x", pady=3)
         tk.Label(rp, text="Forma de pago", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=14, anchor="w").pack(side="left")
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="w").pack(side="left")
         self._pago = RadioGroup(rp, [
             {"label": "Tarjeta crédito", "value": "credito", "style": "default"},
             {"label": "Tarjeta débito",  "value": "debito",  "style": "teal"},
@@ -174,12 +178,12 @@ class PerfilacionDialog(tk.Toplevel):
         rn = tk.Frame(sec, bg=WHITE)
         rn.pack(fill="x", pady=3)
         tk.Label(rn, text="Notas generales", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=14, anchor="nw").pack(side="left", pady=(3, 0))
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="nw").pack(side="left", pady=(3, 0))
         self._notas = tk.Text(rn, font=FONT_BODY, height=3, width=44,
                                bg=GRAY_BG, fg=TEXT_PRI, relief="flat",
                                padx=8, pady=6,
                                highlightbackground=BORDER, highlightthickness=1)
-        self._notas.pack(side="left")
+        self._notas.pack(side="left", fill="x", expand=True)
 
     def _build_funeraria(self):
         sec = self._section("Perfilación funeraria", "🪦")
@@ -187,18 +191,19 @@ class PerfilacionDialog(tk.Toplevel):
         # Familia
         fam = tk.Frame(sec, bg=WHITE)
         fam.pack(fill="x", pady=3)
-        self._miembros   = LabeledSpinbox(fam, "Miembros familia", 1, 20, bg=WHITE)
+        self._miembros   = LabeledSpinbox(fam, "Miembros familia", 1, 20, bg=WHITE, label_width=FORM_LABEL_WIDTH)
         self._miembros.pack(side="left")
-        tk.Label(fam, text="   A proteger:", font=FONT_BODY, fg=TEXT_SEC, bg=WHITE).pack(side="left")
+        tk.Label(fam, text="A proteger", font=FONT_BODY, fg=TEXT_SEC,
+                 bg=WHITE, width=12, anchor="w").pack(side="left", padx=(12, 0))
         self._a_proteger = LabeledSpinbox(fam, "", 1, 20, bg=WHITE, label_width=0)
         self._a_proteger.pack(side="left")
 
         # Producto
-        self._producto = LabeledCombo(sec, "Producto de interés", PRODUCTOS, bg=WHITE)
+        self._producto = LabeledCombo(sec, "Producto de interés", PRODUCTOS, bg=WHITE, label_width=FORM_LABEL_WIDTH, width=32)
         self._producto.pack(fill="x", pady=3)
 
         # Cementerio
-        self._cementerio = LabeledCombo(sec, "Cementerio / nicho", CEMENTERIOS, bg=WHITE)
+        self._cementerio = LabeledCombo(sec, "Cementerio / nicho", CEMENTERIOS, bg=WHITE, label_width=FORM_LABEL_WIDTH, width=32)
         self._cementerio.pack(fill="x", pady=3)
 
     def _build_seguimiento(self):
@@ -219,7 +224,7 @@ class PerfilacionDialog(tk.Toplevel):
         fd = tk.Frame(self._seg_frame, bg=WHITE)
         fd.pack(fill="x", pady=3)
         tk.Label(fd, text="Fecha (AAAA-MM-DD)", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=18, anchor="w").pack(side="left")
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="w").pack(side="left")
         self._fecha_seg = DatePickerEntry(fd, bg=WHITE, width=14)
         self._fecha_seg.pack(side="left", ipady=3)
 
@@ -227,7 +232,7 @@ class PerfilacionDialog(tk.Toplevel):
         fh = tk.Frame(self._seg_frame, bg=WHITE)
         fh.pack(fill="x", pady=3)
         tk.Label(fh, text="Hora", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=18, anchor="w").pack(side="left")
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="w").pack(side="left")
         self._hora_seg_var = tk.StringVar()
         self._hora_combo = ttk.Combobox(fh, textvariable=self._hora_seg_var,
                                          values=HORARIOS, state="readonly",
@@ -238,12 +243,12 @@ class PerfilacionDialog(tk.Toplevel):
         fn = tk.Frame(self._seg_frame, bg=WHITE)
         fn.pack(fill="x", pady=3)
         tk.Label(fn, text="Notas seguimiento", font=FONT_BODY, fg=TEXT_SEC,
-                 bg=WHITE, width=18, anchor="nw").pack(side="left", pady=(3, 0))
+                 bg=WHITE, width=FORM_LABEL_WIDTH, anchor="nw").pack(side="left", pady=(3, 0))
         self._seg_notas = tk.Text(fn, font=FONT_BODY, height=2, width=36,
                                    bg=GRAY_BG, fg=TEXT_PRI, relief="flat",
                                    padx=8, pady=6,
                                    highlightbackground=BORDER, highlightthickness=1)
-        self._seg_notas.pack(side="left")
+        self._seg_notas.pack(side="left", fill="x", expand=True)
 
     def _toggle_seguimiento(self):
         if self._agendar_var.get():
@@ -272,6 +277,25 @@ class PerfilacionDialog(tk.Toplevel):
             self._producto.set(d["producto_interes"])
         if d.get("cementerio_nicho"):
             self._cementerio.set(d["cementerio_nicho"])
+        if d.get("agendar_llamada"):
+            self._agendar_var.set(True)
+            self._toggle_seguimiento()
+            self._fecha_seg.set(d.get("fecha_seguimiento") or "")
+            self._hora_seg_var.set(d.get("hora_seguimiento") or "")
+            seg_notas = d.get("seguimiento_notas") or ""
+            if seg_notas:
+                self._seg_notas.insert("1.0", seg_notas)
+
+    def _populate_initial(self):
+        d = self._initial
+        self._nombre.set(d.get("nombre") or "")
+        self._tel.set(d.get("numero") or self._numero)
+        self._empresa.set(d.get("empresa") or "")
+        self._email.set(d.get("email") or "")
+        if d.get("interes"):
+            self._interes.set(d["interes"])
+        if d.get("notas"):
+            self._notas.insert("1.0", d["notas"])
         if d.get("agendar_llamada"):
             self._agendar_var.set(True)
             self._toggle_seguimiento()

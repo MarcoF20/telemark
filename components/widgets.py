@@ -433,7 +433,7 @@ class FunnelBar(tk.Frame):
 # ── StepIndicator ──────────────────────────────────────────────────────────────
 
 class StepIndicator(tk.Frame):
-    STEPS = ["número", "estado", "retención", "lead"]
+    STEPS = ["número", "estado", "retención", "prospecto"]
 
     def __init__(self, parent, bg=WHITE, **kwargs):
         super().__init__(parent, bg=bg, **kwargs)
@@ -503,8 +503,11 @@ class NumberDisplay(tk.Frame):
         mid = tk.Frame(self, bg=self._bg)
         mid.pack(fill="x", pady=(6, 0))
 
+        validate_digits = (self.register(self._is_digits_or_empty), "%P")
         self._entry = ttk.Entry(mid, textvariable=self._number,
-                                font=("Segoe UI", 16), width=18)
+                                font=("Segoe UI", 16), width=18,
+                                validate="key",
+                                validatecommand=validate_digits)
         self._entry.pack(side="left", ipady=6)
         self._entry.bind("<Return>", lambda e: self._confirm())
 
@@ -515,7 +518,7 @@ class NumberDisplay(tk.Frame):
                   command=self._confirm)
         self._confirm_btn.pack(side="left", padx=(6, 0))
 
-        self._change_btn = tk.Button(mid, text="Cambiar base", font=FONT_BODY,
+        self._change_btn = tk.Button(mid, text="Cambiar numero base", font=FONT_BODY,
                   bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
                   padx=10, pady=6, cursor="hand2",
                   highlightbackground=BORDER, highlightthickness=1,
@@ -533,7 +536,8 @@ class NumberDisplay(tk.Frame):
         self._confirmed_lbl.pack(anchor="w", pady=(4, 0))
 
     def _confirm(self):
-        num = self._number.get().strip()
+        num = self._digits_only(self._number.get())
+        self._number.set(num)
         if num:
             self._confirmed_lbl.config(text=f"✓  {num}")
             self.lock()
@@ -541,20 +545,10 @@ class NumberDisplay(tk.Frame):
                 self._on_change(num, confirmed=True)
 
     def _increment(self):
-        raw = self._number.get().strip()
+        raw = self._digits_only(self._number.get())
         if not raw:
             return
-        # Split prefix + numeric suffix
-        i = len(raw)
-        while i > 0 and raw[i-1].isdigit():
-            i -= 1
-        prefix  = raw[:i]
-        suffix  = raw[i:]
-        if suffix:
-            new_num = str(int(suffix) + 1).zfill(len(suffix))
-            new_val = prefix + new_num
-        else:
-            new_val = raw
+        new_val = str(int(raw) + 1).zfill(len(raw))
         self._number.set(new_val)
         self._confirmed_lbl.config(text=f"✓  {new_val}")
         self.lock()
@@ -567,13 +561,20 @@ class NumberDisplay(tk.Frame):
         return self._confirmed_lbl.cget("text").replace("✓", "").strip()
 
     def get_raw(self) -> str:
-        return self._number.get().strip()
+        return self._digits_only(self._number.get())
 
     def set_number(self, value: str):
+        value = self._digits_only(value)
         self._number.set(value)
         if value:
             self._confirmed_lbl.config(text=f"✓  {value}")
             self.lock()
+
+    def _is_digits_or_empty(self, value: str) -> bool:
+        return value == "" or value.isdigit()
+
+    def _digits_only(self, value: str) -> str:
+        return "".join(ch for ch in str(value or "") if ch.isdigit())
 
     def lock(self):
         self._locked = True
