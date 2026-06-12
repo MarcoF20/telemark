@@ -24,10 +24,13 @@ htmlcov/
 # Logs and local temp files
 *.log
 *.tmp
-*.bak
+*.bakcleee
 
 # Editor and OS files
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Database 
+teleassist.db

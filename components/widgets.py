@@ -5,6 +5,53 @@ from datetime import date, datetime
 from components.theme import *
 
 
+def bind_canvas_mousewheel(canvas: tk.Canvas):
+    """Scroll a canvas only when the pointer is over that canvas/content."""
+
+    def _is_descendant(widget, ancestor):
+        while widget is not None:
+            if widget == ancestor:
+                return True
+            widget = getattr(widget, "master", None)
+        return False
+
+    def _on_wheel(event):
+        try:
+            widget = event.widget.winfo_containing(event.x_root, event.y_root)
+            if not _is_descendant(widget, canvas):
+                return None
+            if canvas.yview() == (0.0, 1.0):
+                return None
+            delta = getattr(event, "delta", 0)
+            direction = -1 if getattr(event, "num", None) == 4 or delta > 0 else 1
+            canvas.yview_scroll(direction, "units")
+            return "break"
+        except tk.TclError:
+            return None
+
+    top = canvas.winfo_toplevel()
+    top.bind("<MouseWheel>", _on_wheel, add="+")
+    top.bind("<Button-4>", _on_wheel, add="+")
+    top.bind("<Button-5>", _on_wheel, add="+")
+
+
+def bind_tree_mousewheel(tree: ttk.Treeview):
+    """Scroll a treeview when the pointer is over the table."""
+
+    def _on_wheel(event):
+        try:
+            delta = getattr(event, "delta", 0)
+            direction = -1 if getattr(event, "num", None) == 4 or delta > 0 else 1
+            tree.yview_scroll(direction, "units")
+            return "break"
+        except tk.TclError:
+            return None
+
+    tree.bind("<MouseWheel>", _on_wheel)
+    tree.bind("<Button-4>", _on_wheel)
+    tree.bind("<Button-5>", _on_wheel)
+
+
 # ── RadioGroup ─────────────────────────────────────────────────────────────────
 
 class RadioGroup(tk.Frame):
@@ -524,11 +571,7 @@ class NumberDisplay(tk.Frame):
                   highlightbackground=BORDER, highlightthickness=1,
                   command=self.unlock)
 
-        tk.Button(mid, text="+1", font=FONT_BODY,
-                  bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,
-                  padx=10, pady=6, cursor="hand2",
-                  highlightbackground=BORDER, highlightthickness=1,
-                  command=self._increment).pack(side="left", padx=(4, 0))
+
 
         self._confirmed_lbl = tk.Label(self, text="",
                                         font=("Segoe UI", 11, "bold"),

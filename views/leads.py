@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox, filedialog
 import csv
 from datetime import datetime
 from components.theme import *
-from components.widgets import SectionHeader
+from components.widgets import SectionHeader, bind_tree_mousewheel
 from data.database import get_all_leads, delete_lead, get_lead_by_id
 
 
@@ -123,6 +123,7 @@ class LeadsView(tk.Frame):
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal",
                              command=self._tree.xview)
         self._tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        bind_tree_mousewheel(self._tree)
         self._tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")

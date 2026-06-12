@@ -22,7 +22,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("TeleAssist")
+        self.title("TeleMark")
         self.geometry("1120x700")
         self.minsize(900, 580)
         self.configure(bg=WHITE)
@@ -48,7 +48,7 @@ class App(tk.Tk):
         # Logo block
         logo = tk.Frame(sidebar, bg=PRIMARY, padx=14, pady=16)
         logo.pack(fill="x")
-        tk.Label(logo, text="TeleAssist", font=("Segoe UI", 14, "bold"),
+        tk.Label(logo, text="TeleMark", font=("Segoe UI", 14, "bold"),
                  fg=WHITE, bg=PRIMARY).pack(anchor="w")
         tk.Label(logo, text="funeraria · local",
                  font=FONT_SMALL, fg="#93C5FD", bg=PRIMARY).pack(anchor="w")

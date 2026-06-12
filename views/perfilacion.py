@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 from components.theme import *
 from components.widgets import (
     RadioGroup, LabeledEntry, LabeledCombo, LabeledSpinbox, SectionHeader,
-    DatePickerEntry
+    DatePickerEntry, bind_canvas_mousewheel
 )
 from data.database import guardar_lead, update_lead, get_lead_by_id
 
@@ -27,13 +27,15 @@ class PerfilacionDialog(tk.Toplevel):
     def __init__(self, parent, lead_id: int | None = None,
                  numero: str = "", llamada_id: int | None = None,
                  sesion_id: int | None = None,
-                 on_saved=None, initial_data: dict | None = None):
+                 on_saved=None, initial_data: dict | None = None,
+                 before_save=None):
         super().__init__(parent)
         self._lead_id   = lead_id
         self._numero    = numero
         self._llamada_id = llamada_id
         self._sesion_id = sesion_id
         self._on_saved  = on_saved
+        self._before_save = before_save
         self._existing  = get_lead_by_id(lead_id) if lead_id else None
         self._initial   = initial_data or {}
 
@@ -96,9 +98,7 @@ class PerfilacionDialog(tk.Toplevel):
         self._body.bind("<Configure>",
                         lambda e: canvas.configure(
                             scrollregion=canvas.bbox("all")))
-        canvas.bind_all("<MouseWheel>",
-                        lambda e: canvas.yview_scroll(-1*(e.delta//120), "units"),
-                        add="+")
+        bind_canvas_mousewheel(canvas)
         canvas.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
@@ -340,6 +340,8 @@ class PerfilacionDialog(tk.Toplevel):
             update_lead(self._lead_id, data)
             msg = "Lead actualizado correctamente."
         else:
+            if self._before_save:
+                self._llamada_id = self._before_save()
             lid = guardar_lead(data, self._llamada_id or 0, self._sesion_id)
             msg = f"Lead #{lid} guardado."
 

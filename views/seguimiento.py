@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from components.theme import *
-from components.widgets import SectionHeader
+from components.widgets import SectionHeader, bind_canvas_mousewheel
 from data.database import get_leads_con_seguimiento, get_lead_by_id
 
 
@@ -41,9 +41,7 @@ class SeguimientoView(tk.Frame):
         self._body.bind("<Configure>",
                         lambda e: canvas.configure(
                             scrollregion=canvas.bbox("all")))
-        canvas.bind_all("<MouseWheel>",
-                        lambda e: canvas.yview_scroll(-1*(e.delta//120),"units"),
-                        add="+")
+        bind_canvas_mousewheel(canvas)
         canvas.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 

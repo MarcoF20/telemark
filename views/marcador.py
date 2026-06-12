@@ -4,7 +4,8 @@ from tkinter import ttk, messagebox
 from components.theme import *
 from components.widgets import (
     RadioGroup, SectionHeader, StepIndicator,
-    LabeledEntry, NumberDisplay, DatePickerEntry
+    LabeledEntry, NumberDisplay, DatePickerEntry,
+    bind_canvas_mousewheel
 )
 from views.perfilacion import PerfilacionDialog
 from data.database import (
@@ -117,6 +118,8 @@ class MarcadorView(tk.Frame):
 
     def _run_hotkey(self, action):
         def _handler(event):
+            if not self._num_display.get_number():
+                return "break"
             action()
             return "break"
         return _handler
@@ -201,9 +204,7 @@ class MarcadorView(tk.Frame):
         self._content.bind("<Configure>",
                            lambda e: self._canvas.configure(
                                scrollregion=self._canvas.bbox("all")))
-        self._canvas.bind_all("<MouseWheel>",
-                              lambda e: self._canvas.yview_scroll(
-                                  -1*(e.delta//120), "units"), add="+")
+        bind_canvas_mousewheel(self._canvas)
         self._canvas.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
@@ -518,23 +519,29 @@ class MarcadorView(tk.Frame):
             return
         if not self._can_save_lead():
             return
-        # First save the llamada if not saved yet
-        if not self._llamada_id:
-            self._llamada_id = guardar_llamada(self._call_data(lead_status="lead"),
-                                                self._sesion_id)
         PerfilacionDialog(
             self, lead_id=None,
             numero=numero,
             llamada_id=self._llamada_id,
             sesion_id=self._sesion_id,
+            before_save=self._guardar_llamada_perfilacion,
             on_saved=self._on_perfilacion_saved,
             initial_data=self._lead_data(numero),
         )
 
+    def _guardar_llamada_perfilacion(self):
+        if not self._llamada_id:
+            self._llamada_id = guardar_llamada(
+                self._call_data(lead_status="lead"),
+                self._sesion_id,
+            )
+        return self._llamada_id
+
     def _on_perfilacion_saved(self):
         if self._on_saved:
             self._on_saved()
-        self._reset()
+        self._num_display._increment()
+        self._reset(keep_number=True)
 
     # ── Actions ────────────────────────────────────────────────────────────────
 
