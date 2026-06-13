@@ -42,13 +42,13 @@ class LeadsView(tk.Frame):
         # Toolbar
         bar = tk.Frame(self, bg=WHITE, padx=PAD, pady=PAD_S)
         bar.pack(fill="x")
-        tk.Label(bar, text="Leads", font=FONT_TITLE,
+        tk.Label(bar, text="Prospectos", font=FONT_TITLE,
                  fg=TEXT_PRI, bg=WHITE).pack(side="left")
 
         for label, cmd, bg_, fg_ in [
             ("↻ Actualizar",        self.refresh,      GRAY_BG,      TEXT_SEC),
             ("⬇ Exportar CSV",      self._export_csv,  PRIMARY_LIGHT, PRIMARY),
-            ("+ Nuevo lead",        self._nuevo_lead,  PRIMARY,       WHITE),
+            ("+ Nuevo prospecto",   self._nuevo_lead,  PRIMARY,       WHITE),
         ]:
             tk.Button(bar, text=label, font=FONT_SMALL,
                       bg=bg_, fg=fg_, relief="flat", bd=0,
@@ -202,7 +202,7 @@ class LeadsView(tk.Frame):
 
         total = len(self._all_leads)
         shown = len(filtered)
-        self._count_var.set(f"{shown} de {total} leads")
+        self._count_var.set(f"{shown} de {total} prospectos")
 
     def _sort(self, col):
         items = [(self._tree.set(k, col), k) for k in self._tree.get_children("")]
@@ -213,7 +213,7 @@ class LeadsView(tk.Frame):
     def _get_selected_id(self):
         sel = self._tree.selection()
         if not sel:
-            messagebox.showinfo("Sin selección", "Selecciona un lead primero.")
+            messagebox.showinfo("Sin selección", "Selecciona un prospecto primero.")
             return None
         return int(sel[0])
 
@@ -237,16 +237,16 @@ class LeadsView(tk.Frame):
         lead = get_lead_by_id(lead_id)
         if not lead:
             messagebox.showinfo(
-                "Lead no disponible",
-                "Ese lead ya no existe. La lista se va a actualizar."
+                "Prospecto no disponible",
+                "Ese prospecto ya no existe. La lista se va a actualizar."
             )
             self.refresh()
             if self._on_refresh:
                 self._on_refresh()
             return
         nombre = lead.get("nombre") or lead.get("numero") or f"ID {lead_id}"
-        if messagebox.askyesno("Eliminar lead",
-                               f"¿Eliminar el lead de {nombre}?\nEsta acción no se puede deshacer."):
+        if messagebox.askyesno("Eliminar prospecto",
+                               f"¿Eliminar el prospecto de {nombre}?\nEsta acción no se puede deshacer."):
             delete_lead(lead_id)
             self.refresh()
             if self._on_refresh:
@@ -256,8 +256,8 @@ class LeadsView(tk.Frame):
         if get_lead_by_id(lead_id):
             return True
         messagebox.showinfo(
-            "Lead no disponible",
-            "Ese lead ya no existe. La lista se va a actualizar."
+            "Prospecto no disponible",
+            "Ese prospecto ya no existe. La lista se va a actualizar."
         )
         self.refresh()
         if self._on_refresh:
@@ -267,12 +267,12 @@ class LeadsView(tk.Frame):
     def _export_csv(self):
         data = get_all_leads()
         if not data:
-            messagebox.showinfo("Sin datos", "No hay leads para exportar.")
+            messagebox.showinfo("Sin datos", "No hay prospectos para exportar.")
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".csv",
             filetypes=[("CSV", "*.csv")],
-            initialfile=f"leads_{datetime.now().strftime('%Y%m%d')}.csv",
+            initialfile=f"prospectos_{datetime.now().strftime('%Y%m%d')}.csv",
         )
         if not path:
             return

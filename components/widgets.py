@@ -519,7 +519,7 @@ class SectionHeader(tk.Frame):
                  font=("Segoe UI", 8, "bold"),
                  fg=TEXT_HINT, bg=bg,).pack(side="left")
         tk.Frame(self, bg=BORDER, height=1).pack(
-            side="left", fill="x", expand=True, padx=(8, 0), pady=7)
+            side="left", fill="x", expand=True, padx=(8, 0), pady=7) 
 
 
 # ── NumberDisplay ──────────────────────────────────────────────────────────────

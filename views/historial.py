@@ -14,8 +14,8 @@ COLUMNS = [
     ("line_status", "Línea",      90),
     ("answer_status", "Respuesta", 120),
     ("retention_status", "Retención", 120),
-    ("lead_status", "Lead",       90),
-    ("callback_tag", "Callback",  120),
+    ("lead_status", "Prospecto",  90),
+    ("callback_tag", "Seguimiento",  120),
     ("notas",       "Notas",      220),
 ]
 
@@ -28,7 +28,7 @@ RESULTADO_TAGS = {
 
 RESULTADO_FILTERS = [
     ("lead", "Prospecto"),
-    ("callback", "Callback"),
+    ("callback", "Seguimiento"),
     ("sin", "Sin prospecto"),
 ]
 
@@ -58,8 +58,8 @@ ANSWER_LABELS = {
 }
 
 LEAD_LABELS = {
-    "lead": "Lead",
-    "not_lead": "No lead",
+    "lead": "Prospecto",
+    "not_lead": "No prospecto",
     "not_applicable": "No aplica",
 }
 
@@ -67,7 +67,7 @@ CALLBACK_LABELS = {
     "none": "",
     "voicemail_retry": "Buzón",
     "call_later": "Llamar luego",
-    "follow_up": "Follow-up",
+    "follow_up": "Seguimiento",
 }
 
 
@@ -184,7 +184,7 @@ class HistorialView(tk.Frame):
                  fg=TEXT_SEC, bg=GRAY_BG).pack(side="left")
         for text, tag in [
             ("Prospecto", "lead_capturado"),
-            ("Callback", "callback"),
+            ("Seguimiento", "callback"),
             ("Buzón", "voicemail"),
             ("Sin prospecto", "sin_contacto"),
         ]:
@@ -293,7 +293,7 @@ class HistorialView(tk.Frame):
         lid = int(sel[0])
         if messagebox.askyesno("Eliminar llamada",
                                f"¿Eliminar la llamada #{lid}?\n"
-                               "Si tiene un lead asociado también se eliminará."):
+                               "Si tiene un prospecto asociado también se eliminará."):
             delete_llamada(lid)
             self.refresh()
 

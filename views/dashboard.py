@@ -25,7 +25,7 @@ class DashboardView(tk.Frame):
         # Header
         hdr = tk.Frame(self, bg=GRAY_BG, padx=PAD, pady=PAD_S)
         hdr.pack(fill="x")
-        tk.Label(hdr, text="Dashboard", font=FONT_TITLE,
+        tk.Label(hdr, text="Resumen", font=FONT_TITLE,
                  fg=TEXT_PRI, bg=GRAY_BG).pack(side="left")
         self._time_lbl = tk.Label(hdr, text="",
                                    font=FONT_SMALL, fg=TEXT_SEC, bg=GRAY_BG)
@@ -49,8 +49,8 @@ class DashboardView(tk.Frame):
             ("alive",                "Activos",        GREEN),
             ("answered",             "Contestaron",    BLUE),
             ("retained",             "Retenidas",      TEAL),
-            ("leads",                "Leads",          PRIMARY),
-            ("lead_conversion_rate", "Conversión lead", PRIMARY),
+            ("leads",                "Prospectos",     PRIMARY),
+            ("lead_conversion_rate", "Conversión prospecto", PRIMARY),
         ]
         for i, (key, label, color) in enumerate(metrics):
             card = StatCard(cards_grid, label, "0", color=color, bg=WHITE)
@@ -75,7 +75,7 @@ class DashboardView(tk.Frame):
             ("alive",    "Activos",     GREEN_MID),
             ("answered", "Contestaron", BLUE_MID),
             ("retained", "Retenidas",   TEAL_MID),
-            ("leads",    "Leads",       PRIMARY),
+            ("leads",    "Prospectos",  PRIMARY),
         ]
         for key, label, color in funnel_defs:
             bar = FunnelBar(left, label, 0, 1, color=color, bg=WHITE)
@@ -87,7 +87,7 @@ class DashboardView(tk.Frame):
                          highlightbackground=BORDER, highlightthickness=1)
         right.pack(side="left", fill="both", expand=True)
 
-        SectionHeader(right, "Últimos leads", bg=WHITE).pack(
+        SectionHeader(right, "Últimos prospectos", bg=WHITE).pack(
             fill="x", pady=(0, PAD_S))
         self._leads_frame = tk.Frame(right, bg=WHITE)
         self._leads_frame.pack(fill="both", expand=True)
@@ -114,7 +114,7 @@ class DashboardView(tk.Frame):
 
         leads = get_leads_recientes(6)
         if not leads:
-            tk.Label(self._leads_frame, text="Sin leads en esta sesión",
+            tk.Label(self._leads_frame, text="Sin prospectos en esta sesión",
                      font=FONT_SMALL, fg=TEXT_SEC, bg=WHITE).pack(pady=PAD)
         else:
             for lead in leads:

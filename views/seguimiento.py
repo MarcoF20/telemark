@@ -146,7 +146,7 @@ class SeguimientoView(tk.Frame):
             tk.Label(right, text=" ⚠ vencido ", font=FONT_SMALL,
                      bg=RED_LIGHT, fg=RED).pack(anchor="e", pady=(0, 4))
 
-        tk.Button(right, text="Abrir lead", font=FONT_SMALL,
+        tk.Button(right, text="Abrir prospecto", font=FONT_SMALL,
                   bg=BLUE_LIGHT, fg=BLUE, relief="flat", bd=0,
                   padx=8, pady=3, cursor="hand2",
                   command=lambda lid=lead["id"]: self._open_lead(lid)
@@ -155,8 +155,8 @@ class SeguimientoView(tk.Frame):
     def _open_lead(self, lead_id: int):
         if not get_lead_by_id(lead_id):
             messagebox.showinfo(
-                "Lead no disponible",
-                "Ese lead ya no existe. La lista se va a actualizar."
+                "Prospecto no disponible",
+                "Ese prospecto ya no existe. La lista se va a actualizar."
             )
             self.refresh()
             return

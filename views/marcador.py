@@ -10,6 +10,7 @@ from components.widgets import (
 from views.perfilacion import PerfilacionDialog
 from data.database import (
     guardar_llamada, guardar_lead,
+    get_lead_by_numero,
     get_config, set_config,
     iniciar_sesion, get_sesion_activa, cerrar_sesion,
     get_stats_sesion,
@@ -94,6 +95,7 @@ class MarcadorView(tk.Frame):
         self._on_saved  = on_llamada_saved
         self._llamada_id = None
         self._sesion_id  = None
+        self._status_after_id = None
         self._hotkey_guide_visible = get_config("marcador_hotkeys_visible", "1") != "0"
         self._build()
         self._bind_hotkeys()
@@ -186,6 +188,20 @@ class MarcadorView(tk.Frame):
         step_bar.pack(fill="x")
         self._steps = StepIndicator(step_bar, bg=WHITE)
         self._steps.pack(side="left")
+
+        self._status_var = tk.StringVar(value="")
+        self._status_lbl = tk.Label(
+            self,
+            textvariable=self._status_var,
+            font=FONT_SMALL,
+            fg=GREEN,
+            bg=GREEN_LIGHT,
+            padx=PAD,
+            pady=4,
+            anchor="w",
+        )
+        self._status_lbl.pack(fill="x")
+        self._status_lbl.pack_forget()
 
         ttk.Separator(self, orient="horizontal").pack(fill="x")
 
@@ -296,7 +312,7 @@ class MarcadorView(tk.Frame):
 
         self._lead_status_row = tk.Frame(form, bg=WHITE)
         self._lead_status_row.pack_forget()
-        tk.Label(self._lead_status_row, text="Lead", font=FONT_BODY, fg=TEXT_SEC,
+        tk.Label(self._lead_status_row, text="Prospecto", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._lead_status = BinaryToggle(
             self._lead_status_row,
@@ -309,7 +325,7 @@ class MarcadorView(tk.Frame):
 
         self._callback_row = tk.Frame(form, bg=WHITE)
         self._callback_row.pack_forget()
-        tk.Label(self._callback_row, text="Callback", font=FONT_BODY, fg=TEXT_SEC,
+        tk.Label(self._callback_row, text="Seguimiento", font=FONT_BODY, fg=TEXT_SEC,
                  bg=WHITE, width=16, anchor="w").pack(side="left")
         self._callback_tag = BinaryToggle(
             self._callback_row,
@@ -519,6 +535,8 @@ class MarcadorView(tk.Frame):
             return
         if not self._can_save_lead():
             return
+        if not self._confirm_duplicate_prospect(numero):
+            return
         PerfilacionDialog(
             self, lead_id=None,
             numero=numero,
@@ -571,7 +589,19 @@ class MarcadorView(tk.Frame):
                                "¿Resetear los contadores de la sesión actual?\n"
                                "Los datos guardados no se borran."):
             self._nueva_sesion()
-            messagebox.showinfo("Sesión reiniciada", "Contadores reseteados.")
+            self._show_status("Sesión reiniciada. Contadores reseteados.")
+
+    def _show_status(self, message):
+        if self._status_after_id:
+            self.after_cancel(self._status_after_id)
+        self._status_var.set(message)
+        self._status_lbl.pack(fill="x", before=self._canvas.master)
+        self._status_after_id = self.after(4500, self._clear_status)
+
+    def _clear_status(self):
+        self._status_after_id = None
+        self._status_var.set("")
+        self._status_lbl.pack_forget()
 
     def _guardar_sin_lead(self, silent_invalid=False):
         step_start = self._save_timer()
@@ -582,10 +612,12 @@ class MarcadorView(tk.Frame):
             return
         if not self._call_state_is_valid(silent=silent_invalid):
             return
+        lead_status = self._lead_status.get()
+        if lead_status == "lead" and not self._confirm_duplicate_prospect(numero):
+            return
         self._log_save_timing("Validate call", step_start)
 
         step_start = self._save_timer()
-        lead_status = self._lead_status.get()
         lid = guardar_llamada(self._call_data(), self._sesion_id)
         if lead_status == "lead":
             guardar_lead(self._lead_data(numero), lid, self._sesion_id)
@@ -599,6 +631,10 @@ class MarcadorView(tk.Frame):
         step_start = self._save_timer()
         self._num_display._increment()
         self._reset(keep_number=True)
+        if lead_status == "lead":
+            self._show_status(f"Llamada y prospecto guardados: {numero}.")
+        else:
+            self._show_status(f"Llamada guardada: {numero}.")
         self._log_save_timing("Prepare next", step_start)
 
     def _guardar_lead_rapido(self, silent_invalid=False):
@@ -610,6 +646,8 @@ class MarcadorView(tk.Frame):
             return
         if not self._can_save_lead(silent=silent_invalid):
             return
+        if not self._confirm_duplicate_prospect(numero):
+            return
         self._lead_status.set("lead")
         self._log_save_timing("Validate lead", step_start)
 
@@ -618,7 +656,6 @@ class MarcadorView(tk.Frame):
         guardar_lead(self._lead_data(numero), lid, self._sesion_id)
         self._log_save_timing("DB save lead", step_start)
 
-        messagebox.showinfo("Lead guardado", f"Lead de {numero} guardado.")
         step_start = self._save_timer()
         if self._on_saved:
             self._on_saved()
@@ -627,22 +664,37 @@ class MarcadorView(tk.Frame):
         step_start = self._save_timer()
         self._num_display._increment()
         self._reset(keep_number=True)
+        self._show_status(f"Prospecto guardado: {numero}.")
         self._log_save_timing("Prepare next", step_start)
 
     def _can_save_lead(self, silent=False):
         if self._line_status.get() != "alive" or self._answer_status.get() != "answered":
             if not silent:
                 messagebox.showwarning("Sin contacto",
-                                       "Registra que contestaron antes de guardar el lead.")
+                                       "Registra que contestaron antes de guardar el prospecto.")
             return False
         retention = self._retention.get()
         if retention != "retained":
             if silent:
                 return False
             messagebox.showwarning("Falta retención",
-                                   "Marca Retenida antes de guardar lead.")
+                                   "Marca Retenida antes de guardar prospecto.")
             return False
         return True
+
+    def _confirm_duplicate_prospect(self, numero):
+        existing = get_lead_by_numero(numero)
+        if not existing:
+            return True
+        nombre = existing.get("nombre") or "Sin nombre"
+        fecha = existing.get("fecha") or "sin fecha"
+        return messagebox.askyesno(
+            "Prospecto duplicado",
+            f"Ya existe un prospecto con este número.\n\n"
+            f"Prospecto: {nombre}\n"
+            f"Capturado: {fecha}\n\n"
+            "¿Quieres guardar otro prospecto con el mismo número?",
+        )
 
     def _call_state_is_valid(self, silent=False):
         line_status = self._line_status.get()
@@ -677,7 +729,7 @@ class MarcadorView(tk.Frame):
         if retention == "retained" and lead_status not in ("lead", "not_lead"):
             if not silent:
                 messagebox.showwarning("Estado inválido",
-                                       "Marca si la llamada retenida se convirtió en lead.")
+                                       "Marca si la llamada retenida se convirtió en prospecto.")
             return False
 
         return True

@@ -608,6 +608,27 @@ def get_lead_by_id(lead_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def get_lead_by_numero(numero: str, exclude_id: int | None = None) -> dict | None:
+    digits = "".join(ch for ch in str(numero or "") if ch.isdigit())
+    if not digits:
+        return None
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT * FROM leads ORDER BY created_at DESC")
+        rows = c.fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    conn.close()
+    for row in rows:
+        if exclude_id is not None and row["id"] == exclude_id:
+            continue
+        row_digits = "".join(ch for ch in str(row["numero"] or "") if ch.isdigit())
+        if row_digits == digits:
+            return dict(row)
+    return None
+
+
 def get_all_leads():
     conn = get_connection()
     c = conn.cursor()

@@ -5,7 +5,7 @@ from components.widgets import (
     RadioGroup, LabeledEntry, LabeledCombo, LabeledSpinbox, SectionHeader,
     DatePickerEntry, bind_canvas_mousewheel
 )
-from data.database import guardar_lead, update_lead, get_lead_by_id
+from data.database import guardar_lead, update_lead, get_lead_by_id, get_lead_by_numero
 
 
 PRODUCTOS = ["Servicio funerario", "Propiedad de descanso final", "Paquete integral", "No definido"]
@@ -39,7 +39,7 @@ class PerfilacionDialog(tk.Toplevel):
         self._existing  = get_lead_by_id(lead_id) if lead_id else None
         self._initial   = initial_data or {}
 
-        self.title("Perfilación de cita" if not lead_id else "Editar lead")
+        self.title("Perfilación de cita" if not lead_id else "Editar prospecto")
         self.geometry("700x720")
         self.minsize(620, 600)
         self.configure(bg=WHITE)
@@ -315,6 +315,8 @@ class PerfilacionDialog(tk.Toplevel):
             messagebox.showwarning("Datos incompletos",
                                    "Al menos ingresa nombre o teléfono.")
             return
+        if not self._confirm_duplicate_prospect(tel):
+            return
 
         data = {
             "numero":           tel,
@@ -338,14 +340,28 @@ class PerfilacionDialog(tk.Toplevel):
 
         if self._lead_id:
             update_lead(self._lead_id, data)
-            msg = "Lead actualizado correctamente."
+            msg = "Prospecto actualizado correctamente."
         else:
             if self._before_save:
                 self._llamada_id = self._before_save()
             lid = guardar_lead(data, self._llamada_id or 0, self._sesion_id)
-            msg = f"Lead #{lid} guardado."
+            msg = f"Prospecto #{lid} guardado."
 
         messagebox.showinfo("Guardado", msg)
         if self._on_saved:
             self._on_saved()
         self.destroy()
+
+    def _confirm_duplicate_prospect(self, numero):
+        existing = get_lead_by_numero(numero, exclude_id=self._lead_id)
+        if not existing:
+            return True
+        nombre = existing.get("nombre") or "Sin nombre"
+        fecha = existing.get("fecha") or "sin fecha"
+        return messagebox.askyesno(
+            "Prospecto duplicado",
+            f"Ya existe un prospecto con este número.\n\n"
+            f"Prospecto: {nombre}\n"
+            f"Capturado: {fecha}\n\n"
+            "¿Quieres guardar otro prospecto con el mismo número?",
+        )
