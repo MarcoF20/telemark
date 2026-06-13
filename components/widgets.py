@@ -334,14 +334,14 @@ class DatePickerEntry(tk.Frame):
                 is_selected = day == self._selected
                 is_today = day == today
                 bg = PRIMARY if is_selected else (PRIMARY_LIGHT if is_today else WHITE)
-                fg = WHITE if is_selected else (TEXT_PRI if in_month else TEXT_HINT)
+                fg = ON_PRIMARY if is_selected else (TEXT_PRI if in_month else TEXT_HINT)
 
                 btn = tk.Button(
                     row, text=str(day.day), font=FONT_BODY,
                     width=4, height=1, relief="flat", bd=0,
                     bg=bg, fg=fg, cursor="hand2",
                     activebackground=PRIMARY_MID,
-                    activeforeground=WHITE,
+                    activeforeground=ON_PRIMARY,
                     command=lambda d=day: self._select_date(d),
                 )
                 btn.pack(side="left", padx=1, pady=1)
@@ -503,7 +503,7 @@ class StepIndicator(tk.Frame):
                 lbl.config(bg=GREEN_LIGHT, fg=GREEN,
                             highlightbackground=GREEN_MID)
             elif i == index:
-                lbl.config(bg=PRIMARY, fg=WHITE,
+                lbl.config(bg=PRIMARY, fg=ON_PRIMARY,
                             highlightbackground=PRIMARY_DARK)
             else:
                 lbl.config(bg=GRAY_BG, fg=TEXT_SEC,
@@ -559,9 +559,9 @@ class NumberDisplay(tk.Frame):
         self._entry.bind("<Return>", lambda e: self._confirm())
 
         self._confirm_btn = tk.Button(mid, text="✓", font=FONT_H2,
-                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=ON_PRIMARY, relief="flat", bd=0,
                   padx=12, pady=6, cursor="hand2",
-                  activebackground=PRIMARY_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=ON_PRIMARY,
                   command=self._confirm)
         self._confirm_btn.pack(side="left", padx=(6, 0))
 

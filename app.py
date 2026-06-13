@@ -1,12 +1,16 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
+import sys
+import components.theme as theme
 from components.theme import *
-from components.theme import apply_theme
+from components.theme import apply_theme, set_primary_color
+from data.database import get_config
 from views.marcador    import MarcadorView
 from views.dashboard   import DashboardView
 from views.leads       import LeadsView
 from views.seguimiento import SeguimientoView
 from views.historial   import HistorialView
+from views.apariencia  import AparienciaView, COLOR_CONFIG_KEY
 
 
 NAV_ITEMS = [
@@ -15,6 +19,7 @@ NAV_ITEMS = [
     ("leads",        "👤  Prospectos",         LeadsView),
     ("seguimiento",  "📅  Seguimientos",  SeguimientoView),
     ("historial",    "📋  Historial",     HistorialView),
+    ("apariencia",   "🎨  Apariencia",    AparienciaView),
 ]
 
 
@@ -22,6 +27,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self._load_saved_theme()
         self.title("TeleMark")
         self.geometry("1120x700")
         self.minsize(900, 580)
@@ -36,6 +42,37 @@ class App(tk.Tk):
         self._build()
         self._navigate("marcador")
 
+    def _load_saved_theme(self):
+        color = get_config(COLOR_CONFIG_KEY, DEFAULT_PRIMARY)
+        set_primary_color(color)
+        self._sync_theme_globals()
+
+    def _sync_theme_globals(self):
+        color_names = (
+            "DEFAULT_PRIMARY",
+            "PRIMARY",
+            "PRIMARY_LIGHT",
+            "PRIMARY_MID",
+            "PRIMARY_DARK",
+            "ON_PRIMARY",
+        )
+        modules = [
+            module for name, module in sys.modules.items()
+            if name == __name__ or name.startswith("views.") or name.startswith("components.")
+        ]
+        for module in modules:
+            for name in color_names:
+                if hasattr(module, name):
+                    setattr(module, name, getattr(theme, name))
+
+        widgets = sys.modules.get("components.widgets")
+        if widgets and hasattr(widgets, "RadioGroup"):
+            widgets.RadioGroup.STYLES["default"] = (
+                theme.PRIMARY_LIGHT,
+                theme.PRIMARY,
+                theme.PRIMARY_MID,
+            )
+
     def _build(self):
         container = tk.Frame(self, bg=WHITE)
         container.pack(fill="both", expand=True)
@@ -49,9 +86,9 @@ class App(tk.Tk):
         logo = tk.Frame(sidebar, bg=PRIMARY, padx=14, pady=16)
         logo.pack(fill="x")
         tk.Label(logo, text="TeleMark", font=("Segoe UI", 14, "bold"),
-                 fg=WHITE, bg=PRIMARY).pack(anchor="w")
+                 fg=ON_PRIMARY, bg=PRIMARY).pack(anchor="w")
         tk.Label(logo, text="funeraria · local",
-                 font=FONT_SMALL, fg="#93C5FD", bg=PRIMARY).pack(anchor="w")
+                 font=FONT_SMALL, fg=ON_PRIMARY, bg=PRIMARY).pack(anchor="w")
 
         # Nav
         nav = tk.Frame(sidebar, bg=GRAY_BG, padx=8, pady=10)
@@ -102,6 +139,8 @@ class App(tk.Tk):
                 kwargs["on_llamada_saved"] = self._on_saved
             if key == "leads":
                 kwargs["on_refresh"] = self._on_saved
+            if key == "apariencia":
+                kwargs["on_theme_saved"] = self._on_theme_saved
             self._views[key] = ViewClass(self._main, **kwargs)
             self._dirty_views.discard(key)
 
@@ -125,3 +164,25 @@ class App(tk.Tk):
         if view and hasattr(view, "refresh"):
             view.refresh()
             self._dirty_views.discard(self._active)
+
+    def _on_theme_saved(self, color: str):
+        set_primary_color(color)
+        self._sync_theme_globals()
+        apply_theme(self)
+
+        active = self._active or "apariencia"
+        for child in self.winfo_children():
+            child.destroy()
+
+        self._views.clear()
+        self._nav_btns.clear()
+        self._active = None
+        self._dirty_views.clear()
+        self.configure(bg=WHITE)
+        self._build()
+        self._navigate(active)
+        messagebox.showinfo(
+            "Color guardado",
+            "El color principal se guardó correctamente.",
+            parent=self,
+        )

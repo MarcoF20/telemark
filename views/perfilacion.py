@@ -77,9 +77,9 @@ class PerfilacionDialog(tk.Toplevel):
         hdr = tk.Frame(self, bg=PRIMARY, padx=PAD, pady=PAD_S)
         hdr.pack(fill="x")
         tk.Label(hdr, text="Perfilación de cita",
-                 font=FONT_TITLE, fg=WHITE, bg=PRIMARY).pack(side="left")
+                 font=FONT_TITLE, fg=ON_PRIMARY, bg=PRIMARY).pack(side="left")
         tk.Button(hdr, text="✕", font=FONT_BODY,
-                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=ON_PRIMARY, relief="flat", bd=0,
                   activebackground=PRIMARY_DARK, cursor="hand2",
                   command=self.destroy).pack(side="right")
 
@@ -113,9 +113,9 @@ class PerfilacionDialog(tk.Toplevel):
         bar = tk.Frame(self, bg=WHITE, padx=PAD, pady=PAD_S)
         bar.pack(fill="x", side="bottom")
         tk.Button(bar, text="  Guardar perfilación  ", font=FONT_BODY,
-                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=ON_PRIMARY, relief="flat", bd=0,
                   padx=16, pady=7, cursor="hand2",
-                  activebackground=PRIMARY_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=ON_PRIMARY,
                   command=self._save).pack(side="left")
         tk.Button(bar, text="Cancelar", font=FONT_BODY,
                   bg=GRAY_BG, fg=TEXT_PRI, relief="flat", bd=0,

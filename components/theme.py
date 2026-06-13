@@ -1,11 +1,14 @@
+import re
 import tkinter as tk
 from tkinter import ttk
 
 # ── Palette ────────────────────────────────────────────────────────────────────
+DEFAULT_PRIMARY = "#2563EB"
 PRIMARY       = "#2563EB"
 PRIMARY_LIGHT = "#DBEAFE"
 PRIMARY_MID   = "#60A5FA"
 PRIMARY_DARK  = "#1E40AF"
+ON_PRIMARY    = "#FFFFFF"
 GREEN        = "#3B6D11"
 GREEN_LIGHT  = "#EAF3DE"
 GREEN_MID    = "#639922"
@@ -51,6 +54,47 @@ FONT_MED    = ("Segoe UI", 16, "bold")
 PAD    = 16
 PAD_S  = 8
 PAD_XS = 4
+
+
+def is_valid_hex_color(value: str) -> bool:
+    return bool(isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", value))
+
+
+def _hex_to_rgb(value: str):
+    value = value.lstrip("#")
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _rgb_to_hex(rgb):
+    return "#{:02X}{:02X}{:02X}".format(*[max(0, min(255, int(v))) for v in rgb])
+
+
+def _mix(color: str, target: str, amount: float) -> str:
+    base = _hex_to_rgb(color)
+    other = _hex_to_rgb(target)
+    return _rgb_to_hex(
+        base[i] + (other[i] - base[i]) * amount for i in range(3)
+    )
+
+
+def _is_light_color(color: str) -> bool:
+    red, green, blue = _hex_to_rgb(color)
+    luminance = (red * 0.299 + green * 0.587 + blue * 0.114) / 255
+    return luminance > 0.62
+
+
+def set_primary_color(color: str):
+    global PRIMARY, PRIMARY_LIGHT, PRIMARY_MID, PRIMARY_DARK, ON_PRIMARY
+
+    if not is_valid_hex_color(color):
+        color = DEFAULT_PRIMARY
+
+    color = color.upper()
+    PRIMARY = color
+    PRIMARY_LIGHT = _mix(color, "#FFFFFF", 0.84)
+    PRIMARY_MID = _mix(color, "#FFFFFF", 0.35)
+    PRIMARY_DARK = _mix(color, "#000000", 0.28)
+    ON_PRIMARY = TEXT_PRI if _is_light_color(color) else WHITE
 
 
 def apply_theme(root: tk.Tk):

@@ -48,7 +48,7 @@ class LeadsView(tk.Frame):
         for label, cmd, bg_, fg_ in [
             ("↻ Actualizar",        self.refresh,      GRAY_BG,      TEXT_SEC),
             ("⬇ Exportar CSV",      self._export_csv,  PRIMARY_LIGHT, PRIMARY),
-            ("+ Nuevo prospecto",   self._nuevo_lead,  PRIMARY,       WHITE),
+            ("+ Nuevo prospecto",   self._nuevo_lead,  PRIMARY,       ON_PRIMARY),
         ]:
             tk.Button(bar, text=label, font=FONT_SMALL,
                       bg=bg_, fg=fg_, relief="flat", bd=0,

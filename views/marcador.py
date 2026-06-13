@@ -172,15 +172,15 @@ class MarcadorView(tk.Frame):
         topbar = tk.Frame(self, bg=PRIMARY, padx=PAD, pady=PAD_S)
         topbar.pack(fill="x")
         tk.Label(topbar, text="Marcador", font=FONT_TITLE,
-                 fg=WHITE, bg=PRIMARY).pack(side="left")
+                 fg=ON_PRIMARY, bg=PRIMARY).pack(side="left")
         self._sesion_lbl = tk.Label(topbar, text="Sin sesión",
-                                     font=FONT_SMALL, fg="#93C5FD", bg=PRIMARY)
+                                     font=FONT_SMALL, fg=ON_PRIMARY, bg=PRIMARY)
         self._sesion_lbl.pack(side="left", padx=(12, 0))
 
         tk.Button(topbar, text="↺  Nueva sesión", font=FONT_SMALL,
                   bg=PRIMARY_DARK, fg=WHITE, relief="flat", bd=0,
                   padx=10, pady=4, cursor="hand2",
-                  activebackground=PRIMARY_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=ON_PRIMARY,
                   command=self._confirm_nueva_sesion).pack(side="right")
 
         # Step indicator
@@ -570,9 +570,9 @@ class MarcadorView(tk.Frame):
         action_font = ("Segoe UI", 11, "bold")
 
         tk.Button(bar, text="Capturar prospecto", font=action_font,
-                  bg=PRIMARY, fg=WHITE, relief="flat", bd=0,
+                  bg=PRIMARY, fg=ON_PRIMARY, relief="flat", bd=0,
                   padx=18, pady=10, cursor="hand2",
-                  activebackground=PRIMARY_MID, activeforeground=WHITE,
+                  activebackground=PRIMARY_MID, activeforeground=ON_PRIMARY,
                   command=self._guardar_lead_rapido).pack(
                       side="left", fill="x", expand=True, padx=(0, 8))
 

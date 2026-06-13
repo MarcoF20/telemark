@@ -18,7 +18,7 @@ class SeguimientoView(tk.Frame):
         hdr = tk.Frame(self, bg=PRIMARY, padx=PAD, pady=PAD_S)
         hdr.pack(fill="x")
         tk.Label(hdr, text="📅  Seguimientos agendados",
-                 font=FONT_TITLE, fg=WHITE, bg=PRIMARY).pack(side="left")
+                 font=FONT_TITLE, fg=ON_PRIMARY, bg=PRIMARY).pack(side="left")
         tk.Button(hdr, text="↻  Actualizar", font=FONT_SMALL,
                   bg=PRIMARY_DARK, fg=WHITE, relief="flat", bd=0,
                   padx=10, pady=4, cursor="hand2",
