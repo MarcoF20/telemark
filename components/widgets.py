@@ -261,14 +261,10 @@ class DatePickerEntry(tk.Frame):
                  fg=TEXT_PRI, bg=WHITE, width=18).pack(side="left", expand=True)
         self._nav_button(header, "›", self._next_month).pack(side="right")
 
-        weekdays = tk.Frame(shell, bg=WHITE)
-        weekdays.pack(fill="x", pady=(8, 2))
-        for day_name in ("Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"):
-            tk.Label(weekdays, text=day_name, font=FONT_SMALL,
-                     fg=TEXT_SEC, bg=WHITE, width=4).pack(side="left")
-
         self._days_frame = tk.Frame(shell, bg=WHITE)
-        self._days_frame.pack()
+        self._days_frame.pack(fill="x", pady=(8, 0))
+        for col in range(7):
+            self._days_frame.grid_columnconfigure(col, minsize=52, uniform="calendar")
 
         footer = tk.Frame(shell, bg=WHITE)
         footer.pack(fill="x", pady=(8, 0))
@@ -326,10 +322,21 @@ class DatePickerEntry(tk.Frame):
         )
         today = date.today()
 
-        for week in month:
-            row = tk.Frame(self._days_frame, bg=WHITE)
-            row.pack(fill="x")
-            for day in week:
+        for col, day_name in enumerate(("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")):
+            tk.Label(
+                self._days_frame,
+                text=day_name,
+                font=("Segoe UI", 9, "bold"),
+                fg=TEXT_SEC,
+                bg=GRAY_BG,
+                width=5,
+                pady=5,
+            ).grid(row=0, column=col, sticky="nsew", padx=1, pady=(0, 3))
+
+        for row_index, week in enumerate(month):
+            grid_row = row_index + 1
+            self._days_frame.grid_rowconfigure(grid_row, minsize=38)
+            for col, day in enumerate(week):
                 in_month = day.month == self._shown_month
                 is_selected = day == self._selected
                 is_today = day == today
@@ -337,14 +344,14 @@ class DatePickerEntry(tk.Frame):
                 fg = ON_PRIMARY if is_selected else (TEXT_PRI if in_month else TEXT_HINT)
 
                 btn = tk.Button(
-                    row, text=str(day.day), font=FONT_BODY,
-                    width=4, height=1, relief="flat", bd=0,
+                    self._days_frame, text=str(day.day), font=FONT_BODY,
+                    width=5, height=2, relief="flat", bd=0,
                     bg=bg, fg=fg, cursor="hand2",
                     activebackground=PRIMARY_MID,
                     activeforeground=ON_PRIMARY,
                     command=lambda d=day: self._select_date(d),
                 )
-                btn.pack(side="left", padx=1, pady=1)
+                btn.grid(row=grid_row, column=col, sticky="nsew", padx=1, pady=1)
 
     def _select_date(self, selected):
         self.set(selected.strftime("%Y-%m-%d"))

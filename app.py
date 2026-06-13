@@ -107,7 +107,7 @@ class App(tk.Tk):
             self._nav_btns[key] = btn
 
         # Version
-        tk.Label(sidebar, text="v2.0  ·  uso local",
+        tk.Label(sidebar, text="v1.1  ·  uso local",
                  font=("Segoe UI", 8), fg=GRAY_MID,
                  bg=GRAY_BG, padx=14, pady=8).pack(
                      side="bottom", anchor="w")
